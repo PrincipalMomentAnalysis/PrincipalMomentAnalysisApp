@@ -17,7 +17,7 @@ See also:
 In a few days, PrincipalMomentAnalysisApp.jl will be registered. Until then, you can install it with
 ```julia
 using Pkg
-add https://github.com/PrincipalMomentAnalysis/PrincipalMomentAnalysisApp.jl.git
+Pkg.add(PackageSpec(url="https://github.com/PrincipalMomentAnalysis/PrincipalMomentAnalysisApp.jl.git"))
 ```
 
 ## Running the App
@@ -31,6 +31,7 @@ pmaapp()
 ```
 
 *Option 2*
+
 Run the following command from a terminal/command prompt:
 ```
 julia -e "using PrincipalMomentAnalysisApp; pmaapp()"
