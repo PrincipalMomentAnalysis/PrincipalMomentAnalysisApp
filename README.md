@@ -19,3 +19,20 @@ In a few days, PrincipalMomentAnalysisApp.jl will be registered. Until then, you
 using Pkg
 add https://github.com/PrincipalMomentAnalysis/PrincipalMomentAnalysisApp.jl.git
 ```
+
+## Running the App
+
+*Option 1*
+
+Start Julia and run:
+```julia
+using PrincipalMomentAnalysisApp
+pmaapp()
+```
+
+*Option 2*
+Run the following command from a terminal/command prompt:
+```
+julia -e "using PrincipalMomentAnalysisApp; pmaapp()"
+```
+Note that this requires julia to be in the PATH.
