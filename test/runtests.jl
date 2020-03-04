@@ -1,6 +1,6 @@
 using PrincipalMomentAnalysisApp
 using Test
 
-@testset "PrincipalMomentAnalysisApp.jl" begin
-    # Write your own tests here.
+@testset "PrincipalMomentAnalysisApp" begin
+    include("test_content.jl")
 end
