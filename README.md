@@ -12,3 +12,10 @@ See also:
 
 * [Principal Moment Analysis home page](https://principalmomentanalysis.github.io/).
 * [PrincipalMomentAnalysis.jl](https://principalmomentanalysis.github.io/PrincipalMomentAnalysis).
+
+## Installation
+In a few days, PrincipalMomentAnalysisApp.jl will be registered. Until then, you can install it with
+```julia
+using Pkg
+add https://github.com/PrincipalMomentAnalysis/PrincipalMomentAnalysisApp.jl.git
+```
