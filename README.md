@@ -14,10 +14,10 @@ See also:
 * [PrincipalMomentAnalysis.jl](https://principalmomentanalysis.github.io/PrincipalMomentAnalysis.jl).
 
 ## Installation
-In a few days, PrincipalMomentAnalysisApp.jl will be registered. Until then, you can install it with
+To install PrincipalMomentAnalysisApp.jl, start Julia and type:
 ```julia
 using Pkg
-Pkg.add(PackageSpec(url="https://github.com/PrincipalMomentAnalysis/PrincipalMomentAnalysisApp.jl.git"))
+Pkg.add("PrincipalMomentAnalysisApp")
 ```
 
 ## Running the App
