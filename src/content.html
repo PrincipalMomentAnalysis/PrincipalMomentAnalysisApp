@@ -61,8 +61,12 @@
         }
         dropdown.value = val;
     }
-    function setSampleAnnotNames(v) {
+    function setSampleAnnotNames(v, firstGoodInd) {
         setDropDownItems("lastSampleAnnot", v);
+        var lastSampleAnnot = document.getElementById("lastSampleAnnot")
+        if (lastSampleAnnot.selectedIndex<firstGoodInd) {
+            lastSampleAnnot.selectedIndex = firstGoodInd;
+        }
         updateSampleAnnots()
     }
     function updateSampleAnnots() {

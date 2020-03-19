@@ -41,7 +41,10 @@ end
 
 
 # callback function
-showsampleannotnames(df::DataFrame, toGUI) = put!(toGUI, :displaysampleannotnames=>names(df)[1:min(40,end)])
+function showsampleannotnames(df::DataFrame, toGUI)
+	indLastSampleAnnot = findlast(col->!(eltype(col)<:Union{Real,Missing}), eachcol(df)) # a reasonable guess for which column to use as the last sample annotation
+	put!(toGUI, :displaysampleannotnames=>(names(df)[1:min(max(indLastSampleAnnot+10,40),end)], indLastSampleAnnot))
+end
 
 
 function normalizesample(st, input::Dict{String,Any})
@@ -365,7 +368,7 @@ function pmaapp(; return_job_graph=false)
 			elseif msgName == :displayplot
 				display(plot(msgArgs...))
 			elseif msgName == :displaysampleannotnames
-				js(w, js"""setSampleAnnotNames($msgArgs)""")
+				js(w, js"""setSampleAnnotNames($(msgArgs[1]), $(msgArgs[2]-1))""")
 			elseif msgName == :exited
 				processingThreadRunning = false
 			end
