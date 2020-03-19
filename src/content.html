@@ -106,7 +106,7 @@
         <select id="lastSampleAnnot" onchange='updateSampleAnnots()'></select>
     </div>
     <div class="group">
-        <p class="subtitle">Normalize</p>
+        <p class="subtitle">Normalization</p>
         <p id="normalizeMethodGroup">
             <input type="radio" name="normalizemethodgroup" value="None"         onclick='setValue("normalizemethod", "None")'                >None
             <input type="radio" name="normalizemethodgroup" value="Mean=0"       onclick='setValue("normalizemethod", "Mean=0")'       checked>Mean=0
@@ -156,7 +156,9 @@
             </p>
             <p>
                 Show points: <input type="checkbox" id="showPoints"    onclick='setValue("showpoints",   this.checked.toString())' checked>
+                &nbsp;&nbsp;&nbsp;&nbsp;
                 lines:       <input type="checkbox" id="showLines"     onclick='setValue("showlines",    this.checked.toString())'        >
+                &nbsp;&nbsp;&nbsp;&nbsp;
                 triangles:   <input type="checkbox" id="showTriangles" onclick='setValue("showtriangles",this.checked.toString())'        >
             </p>
         </div>
