@@ -1,4 +1,4 @@
-function plotsimplices(V, sa, G, colorBy, colorDict;
+function plotsimplices(V, G, colorBy, colorDict;
 	                   drawPoints=true, drawLines=true, drawTriangles=true,
 	                   title="",
 	                   opacity=0.3, markerSize=5, lineWidth=2,
@@ -12,12 +12,12 @@ function plotsimplices(V, sa, G, colorBy, colorDict;
 		# TODO: merge the two cases below and implement for lines/triangles too
 
 		if colorDict != nothing
-			for cb in unique(sa[!,colorBy])
-				ind = findall( sa[!,colorBy].==cb )
+			for cb in unique(colorBy)
+				ind = findall(colorBy.==cb )
 				col = colorDict[cb]
 
 				extras = []
-				shapeBy!=nothing && shapeDict!=nothing && push!(extras, (marker_symbol=[shapeDict[k] for k in sa[ind,shapeBy]],))
+				shapeBy!=nothing && shapeDict!=nothing && push!(extras, (marker_symbol=[shapeDict[k] for k in shapeBy[ind]],))
 				isempty(extras) || (extras = pairs(extras...))
 
 				points = scatter3d(;x=V[ind,1],y=V[ind,2],z=V[ind,3], mode="markers", marker_color=col, marker_size=markerSize, marker_line_width=0, name=string(cb), extras...)
@@ -25,15 +25,12 @@ function plotsimplices(V, sa, G, colorBy, colorDict;
 			end
 		else
 			extras = []
-			shapeBy!=nothing && shapeDict!=nothing && push!(extras, (marker_symbol=[shapeDict[k] for k in sa[!,shapeBy]],))
+			shapeBy!=nothing && shapeDict!=nothing && push!(extras, (marker_symbol=[shapeDict[k] for k in shapeBy],))
 			isempty(extras) || (extras = pairs(extras...))
 
-			# points = scatter3d(;x=V[:,1],y=V[:,2],z=V[:,3], mode="markers", marker_color=sa[!,colorBy], marker_size=markerSize, marker_line_width=0, name=string(colorBy), extras...)
-			points = scatter3d(;x=V[:,1],y=V[:,2],z=V[:,3], mode="markers", marker=attr(color=sa[!,colorBy], colorscale="Viridis", showscale=true, size=markerSize, line_width=0), name=string(colorBy), extras...)
+			points = scatter3d(;x=V[:,1],y=V[:,2],z=V[:,3], mode="markers", marker=attr(color=colorBy, colorscale="Viridis", showscale=true, size=markerSize, line_width=0), name=string(colorBy), extras...)
 			push!(traces, points)
 		end
-
-
 	end
 
 	if drawLines
@@ -47,7 +44,7 @@ function plotsimplices(V, sa, G, colorBy, colorDict;
 			push!(x, V[r,1], V[c,1], nothing)
 			push!(y, V[r,2], V[c,2], nothing)
 			push!(z, V[r,3], V[c,3], nothing)
-			push!(colors, colorDict[sa[r,colorBy]], colorDict[sa[c,colorBy]], RGB(0.,0.,0.))
+			push!(colors, colorDict[colorBy[r]], colorDict[colorBy[c]], RGB(0.,0.,0.))
 		end
 		push!(traces, scatter3d(;x=x,y=y,z=z, mode="lines", line=attr(color=colors, width=lineWidth), showlegend=false))
 	end
@@ -70,7 +67,7 @@ function plotsimplices(V, sa, G, colorBy, colorDict;
 		triangleInds = unique(triangleInds,dims=2) # remove duplicates
 		triangleInds .-= 1 # PlotlyJS wants zero-based indices
 
-		vertexColor = getindex.((colorDict,), sa[!,colorBy])
+		vertexColor = getindex.((colorDict,), colorBy)
 		push!(traces, mesh3d(; x=V[:,1],y=V[:,2],z=V[:,3],i=triangleInds[1,:],j=triangleInds[2,:],k=triangleInds[3,:], vertexcolor=vertexColor, opacity=opacity, showlegend=false))
 	end
 

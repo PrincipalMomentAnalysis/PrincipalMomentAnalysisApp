@@ -21,12 +21,10 @@
         Blink.msg("msg", data)
     }
     function setValue(name, value) {
-        // Blink.msg("msg",["setvalue", name, value])
         sendMessage(["setvalue", name, value])
     }
     function init() {
         updateSampleSimplexMethod("SA");
-        setValue("lastsampleannot",      document.getElementById("lastSampleAnnot").value);
         setValue("loadrowsassamples",    document.getElementById("loadRowsAsSamples").checked.toString());
         setValue("normalizemethod",      getChecked("normalizeMethodGroup"));
         setValue("dimreductionmethod",   getChecked("dimReductionMethodGroup"));
@@ -39,8 +37,9 @@
         setValue("showlines",            document.getElementById("showLines").checked.toString());
         setValue("showtriangles",        document.getElementById("showTriangles").checked.toString());
         setValue("markersize",           document.getElementById("markerSize").value);
-        setValue("linewidth",           document.getElementById("lineWidth").value);
-        setValue("triangleopacity",           document.getElementById("triangleOpacity").value);
+        setValue("linewidth",            document.getElementById("lineWidth").value);
+        setValue("triangleopacity",      document.getElementById("triangleOpacity").value);
+        setValue("colorby",              getChecked("colorByGroup"));
     }
     function setSampleStatus(status) {
         document.getElementById("info").innerHTML = status;
@@ -83,6 +82,8 @@
         setValue("sampleannot", document.getElementById("sampleAnnot").value)
         setDropDownItems("timeAnnot", annots);
         setValue("timeannot", document.getElementById("timeAnnot").value)
+        setDropDownItems("colorAnnot", annots);
+        setValue("colorannot", document.getElementById("colorAnnot").value)
     }
 </script>
 <style>
@@ -165,6 +166,15 @@
                 Plot width: <input type="number" id="plotWidth"  min="0" max="10000" value="1024" onchange='setValue("plotwidth",this.value)'>
                 height:     <input type="number" id="plotHeight" min="0" max="10000" value="768"  onchange='setValue("plotheight",this.value)'>
             </p>
+            <div id="colorByGroup">
+                <p>
+                    Color by:
+                    <input type="radio" name="colorby" value="None"   onclick='document.getElementById("colorAnnot").disabled=true;  setValue("colorby","None")'        >None&nbsp;
+                    <input type="radio" name="colorby" value="Auto"   onclick='document.getElementById("colorAnnot").disabled=true;  setValue("colorby","Auto")' checked>Auto&nbsp;
+                    <input type="radio" name="colorby" value="Custom" onclick='document.getElementById("colorAnnot").disabled=false; setValue("colorby","Custom")'      >Custom
+                    <select id="colorAnnot" onchange='setValue("colorannot",this.value)' disabled></select>
+                </p>
+            </div>
             <br>
             <table>
                 <tr>

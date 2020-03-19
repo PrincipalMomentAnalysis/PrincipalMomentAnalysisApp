@@ -138,7 +138,7 @@ function dimreduction(st, input::Dict{String,Any})
 end
 
 function makeplot(st, input::Dict{String,Any})
-	@assert length(input)==13
+	@assert length(input)==15
 	reduced            = input["reduced"]::ReducedSampleData
 	dimReductionMethod = Symbol(input["dimreductionmethod"])
 	sampleAnnot        = Symbol(input["sampleannot"])
@@ -152,24 +152,23 @@ function makeplot(st, input::Dict{String,Any})
 	markerSize         = parse(Float64,input["markersize"])
 	lineWidth          = parse(Float64,input["linewidth"])
 	triangleOpacity    = parse(Float64,input["triangleopacity"])
-
+	colorByMethod      = Symbol(input["colorby"])
+	colorAnnot         = Symbol(input["colorannot"])
 
 	@assert plotDims==3 "Only 3 plotting dims supported for now"
 
 	title = dimReductionMethod
 
-	colorBy = Symbol(sampleAnnot)
+	colorByMethod == :Auto && (colorAnnot=sampleAnnot)
+	colorBy = colorByMethod == :None ? repeat([""],size(reduced.sa,1)) : reduced.sa[!,colorAnnot]
 
 	# TODO: handle missing values in sample annotations?
 
-	colorDict = nothing
-	if !(eltype(reduced.sa[!,colorBy]) <: Real)
-		colorDict = colordict(reduced.sa[!,colorBy])
-	end
+	colorDict = (eltype(colorBy) <: Real) ? nothing : colordict(colorBy)
 
 	plotArgs = nothing
 	if plotDims==3
-		plotArgs = plotsimplices(reduced.F.V,reduced.sa,sampleSimplices,colorBy,colorDict, title=title,
+		plotArgs = plotsimplices(reduced.F.V,sampleSimplices,colorBy,colorDict, title=title,
 		                         drawPoints=showPoints, drawLines=showLines, drawTriangles=showTriangles,
 		                         opacity=triangleOpacity, markerSize=markerSize, lineWidth=lineWidth,
 		                         width=plotWidth, height=plotHeight)
@@ -239,6 +238,8 @@ function JobGraph()
 	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"markersize")=>makeplotID, "markersize")
 	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"linewidth")=>makeplotID, "linewidth")
 	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"triangleopacity")=>makeplotID, "triangleopacity")
+	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"colorby")=>makeplotID, "colorby")
+	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"colorannot")=>makeplotID, "colorannot")
 
 
 	JobGraph(scheduler,
