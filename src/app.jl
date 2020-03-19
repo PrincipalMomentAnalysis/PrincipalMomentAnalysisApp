@@ -245,16 +245,11 @@ getparamjobid(jg::JobGraph, name::String, args...) = getparamjobid(jg.scheduler,
 setparam(jg::JobGraph, name::String, value) = setresult!(jg.scheduler, jg.paramIDs[name], value)
 
 
-let jobGraph = JobGraph()
-	global getjobgraph() = return jobGraph
-end
 
 
-
-function process_thread(fromGUI::Channel, toGUI::Channel)
+function process_thread(jg::JobGraph, fromGUI::Channel, toGUI::Channel)
 	try
 		# setup dependency graph
-		jg = getjobgraph()
 		scheduler = jg.scheduler
 		lastSchedulerTime = UInt64(0)
 
@@ -294,9 +289,7 @@ function process_thread(fromGUI::Channel, toGUI::Channel)
 					@warn "[Processing] Error processing GUI message."
 					showerror(stdout, e, catch_backtrace())
 				end
-				@info "Sample status: $(jg.sampleStatus[])"
 				setsamplestatus(jg, toGUI)
-				@info "Sample status: $(jg.sampleStatus[])"
 			elseif wantstorun(scheduler) || (isactive(scheduler) && (timeNow-lastSchedulerTime)/1e9 > 5.0)
 				lastSchedulerTime = timeNow
 				try
@@ -327,8 +320,10 @@ end
 
 Start the Principal Moment Analysis App.
 """
-function pmaapp()
+function pmaapp(; return_job_graph=false)
 	# This is the GUI thread
+
+	jg = JobGraph()
 
 	@info "[PMAGUI] Using $(Threads.nthreads()) of $(Sys.CPU_THREADS) available threads."
 	Threads.nthreads() == 1 && @warn "[PMAGUI] Threading not enabled, please set the environment variable JULIA_NUM_THREADS to the desired number of threads."
@@ -339,7 +334,7 @@ function pmaapp()
 
 	# start processing thread
 	processingThreadRunning = true
-	Threads.@spawn process_thread(fromGUI, toGUI)
+	Threads.@spawn process_thread(jg, fromGUI, toGUI)
 
 	# setup gui
 	w = Window(Dict(:width=>512,:height=>768))
@@ -391,6 +386,8 @@ function pmaapp()
 		sleep(0.05)
 	end
 	@info "[GUI] Scheduler thread finished."
+
+	return_job_graph ? jg : nothing
 end
 
 
