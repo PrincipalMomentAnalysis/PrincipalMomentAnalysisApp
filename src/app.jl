@@ -14,7 +14,6 @@ struct SampleData
 	data::Matrix
 	sa::DataFrame
 	va::DataFrame
-	filepath::String
 end
 SampleData() = SampleData(zeros(0,0),DataFrame(),DataFrame(),"")
 
@@ -25,35 +24,45 @@ struct ReducedSampleData
 end
 
 
-function loadcsv(filepath::String; delim, nbrSampleAnnots, transpose::Bool=false)
-	df = CSV.read(filepath; delim=delim, transpose=transpose, use_mmap=false, copycols=true, threaded=false) # copycols=true, threaded=false and perhaps use_mmap=false are needed to avoid crashes
-	sa = df[:, 1:nbrSampleAnnots]
-	va = DataFrame(VariableID=names(df)[nbrSampleAnnots+1:end])
-	data = convert(Matrix, df[!,nbrSampleAnnots+1:end])'
-	@assert eltype(data) <: Union{Number,Missing}
-	data,sa,va
-end
+loadcsv(filepath::String; delim, transpose::Bool=false) =
+	DataFrame(CSV.File(filepath; delim=delim, transpose=transpose, use_mmap=false, threaded=false)) # threaded=false and perhaps use_mmap=false are needed to avoid crashes
 
-function loadsample(st, input::Dict{String,Any})::SampleData
-	@assert length(input)==3
+function loadsample(st, input::Dict{String,Any})::DataFrame
+	@assert length(input)==2
 	filepath = input["filepath"]::String
-	nbrSampleAnnots = parse(Int,input["nbrsampleannots"]::String)
 	rowsAsSamples   = parse(Bool,input["rowsassamples"])
 	filepath == :__INVALID__ && return Nothing
 	filepath::String
 	isempty(filepath) && return Nothing
 	@assert isfile(filepath) "Sample file not found: \"$filepath\""
 	ext = lowercase(splitext(filepath)[2])
-	if ext==".gedata"
-		originalData,sa,va = Qlucore.read(filepath)
-	elseif ext in (".csv",".tsv",".txt")
-		originalData,sa,va = loadcsv(filepath; delim=ext==".csv" ? ',' : '\t', nbrSampleAnnots=nbrSampleAnnots, transpose=!rowsAsSamples)
-	end
+	loadcsv(filepath; delim=ext==".csv" ? ',' : '\t', transpose=!rowsAsSamples)
+end
+
+
+# callback function
+showsampleannotnames(df::DataFrame, toGUI) = put!(toGUI, :displaysampleannotnames=>names(df)[1:min(40,end)])
+
+
+function normalizesample(st, input::Dict{String,Any})
+	@assert length(input)==3
+	df = input["dataframe"]
+	method = input["method"]
+	lastSampleAnnot = input["lastsampleannot"]
+	@assert method in ("None", "Mean=0", "Mean=0,Std=1")
+
+	nbrSampleAnnots = findfirst(x->string(x)==lastSampleAnnot, names(df))
+	@assert nbrSampleAnnots != nothing "Couldn't find sample annotation: \"$lastSampleAnnot\""
+
+	sa = df[:, 1:nbrSampleAnnots]
+	va = DataFrame(VariableID=names(df)[nbrSampleAnnots+1:end])
+	originalData = convert(Matrix, df[!,nbrSampleAnnots+1:end])'
+	@assert eltype(originalData) <: Union{Number,Missing}
 
 	data = zeros(size(originalData))
 	if any(ismissing,originalData)
 		# Replace missing values with mean over samples with nonmissing data
-		println("Reconstructing missing values (taking the mean over all nonmissing samples)")
+		@info "Reconstructing missing values (taking the mean over all nonmissing samples)"
 		for i=1:size(data,1)
 			m = ismissing.(originalData[i,:])
 			data[i,.!m] .= originalData[i,.!m]
@@ -63,26 +72,14 @@ function loadsample(st, input::Dict{String,Any})::SampleData
 		data .= originalData # just copy
 	end
 
-	SampleData(data,sa,va,filepath)
-end
 
-
-# callback function
-showsampleannotnames(sampleData, toGUI) = put!(toGUI, :displaysampleannotnames=>names(sampleData.sa))
-
-
-function normalizesample(st, input::Dict{String,Any})
-	@assert length(input)==2
-	sampleData = input["sampledata"]
-	method = input["method"]
-	@assert method in ("None", "Mean=0", "Mean=0,Std=1")
-	X = sampleData.data
+	X = data
 	if method == "Mean=0,Std=1"
-		X = normalizemeanstd(X)
+		X = normalizemeanstd!(X)
 	elseif method == "Mean=0"
-		X = normalizemean(X)
+		X = normalizemean!(X)
 	end
-	SampleData(X,sampleData.sa,sampleData.va,sampleData.filepath)
+	SampleData(X,sa,va)
 end
 
 
@@ -174,7 +171,6 @@ showplot(plotArgs, toGUI::Channel) = put!(toGUI, :displayplot=>plotArgs)
 
 
 function samplestatus(jg::JobGraph)
-	#jg.scheduler, jg.paramIDs["samplefilepath"] == :__INVALID__ && return "Please load sample."
 	status = jobstatus(jg.scheduler, jg.loadSampleID)
 	status==:done && return "Sample loaded."
 	status in (:waiting,:running) && return "Loading sample."
@@ -199,11 +195,11 @@ function JobGraph()
 
 	loadSampleID = createjob!(loadsample, scheduler, "loadsample")
 	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"samplefilepath")=>loadSampleID, "filepath")
-	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"loadnbrsampleannots")=>loadSampleID, "nbrsampleannots")
 	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"loadrowsassamples")=>loadSampleID, "rowsassamples")
 
 	normalizeID = createjob!(normalizesample, scheduler, "normalizesample")
-	add_dependency!(scheduler, loadSampleID=>normalizeID, "sampledata")
+	add_dependency!(scheduler, loadSampleID=>normalizeID, "dataframe")
+	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"lastsampleannot")=>normalizeID, "lastsampleannot")
 	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"normalizemethod")=>normalizeID, "method")
 
 	setupSimplicesID = createjob!(setupsimplices, scheduler, "setupsimplices")
@@ -215,7 +211,6 @@ function JobGraph()
 	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"distnearestneighbors")=>setupSimplicesID, "distnearestneighbors")
 
 	dimreductionID = createjob!(dimreduction, scheduler, "dimreduction")
-	# add_dependency!(scheduler, loadSampleID=>dimreductionID, "sampledata")
 	add_dependency!(scheduler, normalizeID=>dimreductionID, "sampledata")
 	add_dependency!(scheduler, setupSimplicesID=>dimreductionID, "samplesimplices")
 	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"dimreductionmethod")=>dimreductionID, "method")
@@ -290,8 +285,6 @@ function process_thread(fromGUI::Channel, toGUI::Channel)
 					elseif msgName == :loadsample
 						# schedule!(scheduler, jg.loadSampleID)
 						schedule!(x->showsampleannotnames(x,toGUI), scheduler, jg.loadSampleID)
-					# elseif msgName == :dimreduction
-					# 	schedule!(scheduler, jg.dimreductionID)
 					elseif msgName == :showplot
 						schedule!(x->showplot(x,toGUI), scheduler, jg.makeplotID)
 					else
@@ -301,7 +294,9 @@ function process_thread(fromGUI::Channel, toGUI::Channel)
 					@warn "[Processing] Error processing GUI message."
 					showerror(stdout, e, catch_backtrace())
 				end
+				@info "Sample status: $(jg.sampleStatus[])"
 				setsamplestatus(jg, toGUI)
+				@info "Sample status: $(jg.sampleStatus[])"
 			elseif wantstorun(scheduler) || (isactive(scheduler) && (timeNow-lastSchedulerTime)/1e9 > 5.0)
 				lastSchedulerTime = timeNow
 				try
