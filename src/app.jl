@@ -24,6 +24,10 @@ struct ReducedSampleData
 end
 
 
+guesslastsampleannot(df::DataFrame) =
+	something(findlast(col->!(eltype(col)<:Union{Real,Missing}), eachcol(df)), 1) # a reasonable guess for which column to use as the last sample annotation
+
+
 loadcsv(filepath::String; delim, transpose::Bool=false) =
 	DataFrame(CSV.File(filepath; delim=delim, transpose=transpose, use_mmap=false, threaded=false)) # threaded=false and perhaps use_mmap=false are needed to avoid crashes
 
@@ -36,13 +40,16 @@ function loadsample(st, input::Dict{String,Any})::DataFrame
 	isempty(filepath) && return Nothing
 	@assert isfile(filepath) "Sample file not found: \"$filepath\""
 	ext = lowercase(splitext(filepath)[2])
-	loadcsv(filepath; delim=ext==".csv" ? ',' : '\t', transpose=!rowsAsSamples)
+	df = loadcsv(filepath; delim=ext==".csv" ? ',' : '\t', transpose=!rowsAsSamples)
+	@assert size(df,2)>1 "Invalid data set. Must contain at least one sample annotation and one variable."
+	@assert guesslastsampleannot(df)<size(df,2) "Invalid data set. Numerical data (variables) must come after sample annotations."
+	df
 end
 
 
 # callback function
 function showsampleannotnames(df::DataFrame, toGUI)
-	indLastSampleAnnot = findlast(col->!(eltype(col)<:Union{Real,Missing}), eachcol(df)) # a reasonable guess for which column to use as the last sample annotation
+	indLastSampleAnnot = guesslastsampleannot(df)
 	put!(toGUI, :displaysampleannotnames=>(names(df)[1:min(max(indLastSampleAnnot+10,40),end)], indLastSampleAnnot))
 end
 
