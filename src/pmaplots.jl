@@ -28,7 +28,7 @@ function plotsimplices(V, G, colorBy, colorDict;
 			shapeBy!=nothing && shapeDict!=nothing && push!(extras, (marker_symbol=[shapeDict[k] for k in shapeBy],))
 			isempty(extras) || (extras = pairs(extras...))
 
-			points = scatter3d(;x=V[:,1],y=V[:,2],z=V[:,3], mode="markers", marker=attr(color=colorBy, colorscale="Viridis", showscale=true, size=markerSize, line_width=0), name=string(colorBy), extras...)
+			points = scatter3d(;x=V[:,1],y=V[:,2],z=V[:,3], mode="markers", marker=attr(color=colorBy, colorscale="Viridis", showscale=true, size=markerSize, line_width=0), name="", extras...)
 			push!(traces, points)
 		end
 	end
@@ -37,16 +37,27 @@ function plotsimplices(V, G, colorBy, colorDict;
 		x = Union{Nothing,Float64}[]
 		y = Union{Nothing,Float64}[]
 		z = Union{Nothing,Float64}[]
-		colors = RGB{Float64}[]
-		for ci in findall(G)
+		colorsRGB    = RGB{Float64}[]
+		colorsScalar = Float64[]
+		GSym = G .| G'
+		for ci in findall(GSym)
 			r,c = Tuple(ci)
 			r>c || continue # just use lower triangular part
 			push!(x, V[r,1], V[c,1], nothing)
 			push!(y, V[r,2], V[c,2], nothing)
 			push!(z, V[r,3], V[c,3], nothing)
-			push!(colors, colorDict[colorBy[r]], colorDict[colorBy[c]], RGB(0.,0.,0.))
+			if colorDict==nothing
+				push!(colorsScalar, colorBy[r], colorBy[c], colorBy[c])
+			else
+				push!(colorsRGB, colorDict[colorBy[r]], colorDict[colorBy[c]], RGB(0.,0.,0.))
+			end
 		end
-		push!(traces, scatter3d(;x=x,y=y,z=z, mode="lines", line=attr(color=colors, width=lineWidth), showlegend=false))
+		if colorDict==nothing
+			push!(traces, scatter3d(;x=x,y=y,z=z, mode="lines", line=attr(color=colorsScalar, colorscale="Viridis", width=lineWidth), showlegend=false))
+		else
+			push!(traces, scatter3d(;x=x,y=y,z=z, mode="lines", line=attr(color=colorsRGB, width=lineWidth), showlegend=false))
+		end
+
 	end
 
 	if drawTriangles
@@ -67,8 +78,12 @@ function plotsimplices(V, G, colorBy, colorDict;
 		triangleInds = unique(triangleInds,dims=2) # remove duplicates
 		triangleInds .-= 1 # PlotlyJS wants zero-based indices
 
-		vertexColor = getindex.((colorDict,), colorBy)
-		push!(traces, mesh3d(; x=V[:,1],y=V[:,2],z=V[:,3],i=triangleInds[1,:],j=triangleInds[2,:],k=triangleInds[3,:], vertexcolor=vertexColor, opacity=opacity, showlegend=false))
+		if colorDict==nothing
+			push!(traces, mesh3d(; x=V[:,1],y=V[:,2],z=V[:,3],i=triangleInds[1,:],j=triangleInds[2,:],k=triangleInds[3,:], intensity=colorBy, colorscale="Viridis", opacity=opacity, showlegend=false))
+		else
+			vertexColor = getindex.((colorDict,), colorBy)
+			push!(traces, mesh3d(; x=V[:,1],y=V[:,2],z=V[:,3],i=triangleInds[1,:],j=triangleInds[2,:],k=triangleInds[3,:], vertexcolor=vertexColor, opacity=opacity, showlegend=false))
+		end
 	end
 
 
