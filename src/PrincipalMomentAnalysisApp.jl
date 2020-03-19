@@ -17,7 +17,6 @@ using IterTools
 include("Schedulers.jl")
 using .Schedulers
 
-include("qlucore.jl")
 include("pmaplots.jl")
 include("pca.jl")
 include("app.jl")
