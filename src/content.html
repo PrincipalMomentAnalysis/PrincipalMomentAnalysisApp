@@ -41,6 +41,9 @@
         setValue("triangleopacity",      document.getElementById("triangleOpacity").value);
         setValue("colorby",              getChecked("colorByGroup"));
         // setValue("shapeby",              getChecked("shapeByGroup"));
+        setValue("exportsingledim",      document.getElementById("exportSingleDim").value);
+        setValue("exportsinglesort",     document.getElementById("exportSingleSort").value);
+        setValue("exportmultipledim",    document.getElementById("exportMultipleDim").value);
     }
     function setSampleStatus(status) {
         document.getElementById("info").innerHTML = status;
@@ -110,6 +113,15 @@
     .leftcol
     {
       text-align: left;
+    }
+    .exportcol {
+        padding: 0 10px 0 10px;
+        border: 1px solid gray;
+        text-align: center;
+    }
+    table.center {
+        margin-left:auto;
+        margin-right:auto;
     }
 </style>
 <div>
@@ -213,6 +225,68 @@
             </table>
         </div>
         <button onclick='sendMessage(["showplot"])'>Show plot</button>
+    </div>
+    <div class="group">
+        <p class="subtitle">Export PMAs</p>
+        <table class="center">
+            <tr>
+                <th class="exportcol">Single PMA</th>
+                <th class="exportcol">Muliple PMAs</th>
+            </tr>
+            <tr>
+                <td class="exportcol">
+                    <p>PMA:
+                        <select id="exportSingleDim" onchange='setValue("exportsingledim",this.value)'>
+                            <option value= "1" selected> 1</option>
+                            <option value= "2"         > 2</option>
+                            <option value= "3"         > 3</option>
+                            <option value= "4"         > 4</option>
+                            <option value= "5"         > 5</option>
+                            <option value= "6"         > 6</option>
+                            <option value= "7"         > 7</option>
+                            <option value= "8"         > 8</option>
+                            <option value= "9"         > 9</option>
+                            <option value="10"         >10</option>
+                        </select>
+                    </p>
+                    <p>Sort:
+                        <select id="exportSingleSort" onchange='setValue("exportsinglesort",this.value)'>
+                            <option value= "Abs"        selected>Absolute Value</option>
+                            <option value= "Descending"         >Descending    </option>
+                            <option value= "Ascending"          >Ascending     </option>
+                            <option value= "Original"           >Original order </option>
+                        </select>
+                    </p>
+                    <button onclick='var electron = require("electron");
+                                     var fp = electron.remote.dialog.showSaveDialog(null);
+                                     if (!(fp===undefined)) { setValue("exportsinglepath", fp); sendMessage(["exportsingle"]); }'>
+                        Export
+                    </button>
+                </td>
+                <td class="exportcol">
+                    <p>PMAs 1 to:
+                    <select id="exportMultipleDim" onchange='setValue("exportmultipledim",this.value)'>
+                        <option value= "1"         > 1</option>
+                        <option value= "2"         > 2</option>
+                        <option value= "3" selected> 3</option>
+                        <option value= "4"         > 4</option>
+                        <option value= "5"         > 5</option>
+                        <option value= "6"         > 6</option>
+                        <option value= "7"         > 7</option>
+                        <option value= "8"         > 8</option>
+                        <option value= "9"         > 9</option>
+                        <option value="10"         >10</option>
+                    </select>
+                    </p>
+                    <button onclick='var electron = require("electron");
+                                     var fp = electron.remote.dialog.showSaveDialog(null);
+                                     if (!(fp===undefined)) { setValue("exportmultiplepath", fp); sendMessage(["exportmultiple"]); }'>
+                        Export
+                    </button>
+                </td>
+            </tr>
+        </table>
+
     </div>
     <div class="group" align="center">
         <button onclick='sendMessage(["cancel"])'>Cancel processing</button>

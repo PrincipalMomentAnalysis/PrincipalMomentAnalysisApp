@@ -8,6 +8,8 @@ struct JobGraph
 	setupSimplicesID::JobID
 	dimreductionID::JobID
 	makeplotID::JobID
+	exportSingleID::JobID
+	exportMultipleID::JobID
 end
 
 struct SampleData
@@ -27,6 +29,7 @@ end
 guesslastsampleannot(df::DataFrame) =
 	something(findlast(col->!(eltype(col)<:Union{Real,Missing}), eachcol(df)), 1) # a reasonable guess for which column to use as the last sample annotation
 
+getdelim(filepath::String) = lowercase(splitext(filepath)[2])==".csv" ? ',' : '\t'
 
 loadcsv(filepath::String; delim, transpose::Bool=false) =
 	DataFrame(CSV.File(filepath; delim=delim, transpose=transpose, use_mmap=false, threaded=false)) # threaded=false and perhaps use_mmap=false are needed to avoid crashes
@@ -39,8 +42,7 @@ function loadsample(st, input::Dict{String,Any})::DataFrame
 	filepath::String
 	isempty(filepath) && return Nothing
 	@assert isfile(filepath) "Sample file not found: \"$filepath\""
-	ext = lowercase(splitext(filepath)[2])
-	df = loadcsv(filepath; delim=ext==".csv" ? ',' : '\t', transpose=!rowsAsSamples)
+	df = loadcsv(filepath; delim=getdelim(filepath), transpose=!rowsAsSamples)
 	@assert size(df,2)>1 "Invalid data set. Must contain at least one sample annotation and one variable."
 	@assert guesslastsampleannot(df)<size(df,2) "Invalid data set. Numerical data (variables) must come after sample annotations."
 	df
@@ -187,6 +189,45 @@ end
 showplot(plotArgs, toGUI::Channel) = put!(toGUI, :displayplot=>plotArgs)
 
 
+function exportsingle(st, input::Dict{String,Any})
+	@assert length(input)==4
+	reduced  = input["reduced"]::ReducedSampleData
+	filepath = input["filepath"]
+	sortMode = Symbol(input["sort"])
+	dim      = parse(Int,input["dim"])
+	@assert sortMode in (:Abs, :Descending, :Ascending, :Original)
+
+	df = copy(reduced.va)
+	colName = Symbol("PMA",dim)
+	df[!,colName] = reduced.F.U[:,dim]
+
+	if sortMode==:Abs
+		sort!(df, colName, by=abs, rev=true)
+	elseif sortMode==:Descending
+		sort!(df, colName, rev=true)
+	elseif sortMode==:Ascending
+		sort!(df, colName)
+	end
+
+	CSV.write(filepath, df, delim=getdelim(filepath))
+end
+
+function exportmultiple(st, input::Dict{String,Any})
+	@assert length(input)==3
+	reduced  = input["reduced"]::ReducedSampleData
+	filepath = input["filepath"]
+	dim      = parse(Int,input["dim"])
+
+	df = copy(reduced.va)
+	for d in 1:dim
+		df[!,Symbol("PMA",d)] = reduced.F.U[:,d]
+	end
+
+	CSV.write(filepath, df, delim=getdelim(filepath))
+end
+
+
+
 function samplestatus(jg::JobGraph)
 	status = jobstatus(jg.scheduler, jg.loadSampleID)
 	status==:done && return "Sample loaded."
@@ -252,6 +293,17 @@ function JobGraph()
 	# add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"shapeannot")=>makeplotID, "shapeannot")
 
 
+	exportSingleID = createjob!(exportsingle, scheduler, "exportsingle")
+	add_dependency!(scheduler, dimreductionID=>exportSingleID, "reduced")
+	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"exportsinglepath")=>exportSingleID, "filepath")
+	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"exportsingledim")=>exportSingleID, "dim")
+	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"exportsinglesort")=>exportSingleID, "sort")
+
+	exportMultipleID = createjob!(exportmultiple, scheduler, "exportmultiple")
+	add_dependency!(scheduler, dimreductionID=>exportMultipleID, "reduced")
+	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"exportmultiplepath")=>exportMultipleID, "filepath")
+	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"exportmultipledim")=>exportMultipleID, "dim")
+
 	JobGraph(scheduler,
 	         Ref(""),
 	         ReentrantLock(),
@@ -260,7 +312,9 @@ function JobGraph()
 	         normalizeID,
 	         setupSimplicesID,
 	         dimreductionID,
-	         makeplotID)
+	         makeplotID,
+	         exportSingleID,
+	         exportMultipleID)
 end
 
 getparamjobid(s::Scheduler, paramIDs::Dict{String,JobID}, name::String, create::Bool=true) = create ? get!(paramIDs,name,createjob!(s, :__INVALID__, name)) : paramIDs[name]
@@ -305,6 +359,10 @@ function process_thread(jg::JobGraph, fromGUI::Channel, toGUI::Channel)
 						schedule!(x->showsampleannotnames(x,toGUI), scheduler, jg.loadSampleID)
 					elseif msgName == :showplot
 						schedule!(x->showplot(x,toGUI), scheduler, jg.makeplotID)
+					elseif msgName == :exportsingle
+						schedule!(scheduler, jg.exportSingleID)
+					elseif msgName == :exportmultiple
+						schedule!(scheduler, jg.exportMultipleID)
 					else
 						@warn "Unknown message type: $(msgName)"
 					end
