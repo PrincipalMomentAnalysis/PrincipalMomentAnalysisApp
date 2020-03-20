@@ -6,12 +6,16 @@
 [![Coveralls](https://coveralls.io/repos/github/PrincipalMomentAnalysis/PrincipalMomentAnalysisApp.jl/badge.svg?branch=master)](https://coveralls.io/github/PrincipalMomentAnalysis/PrincipalMomentAnalysisApp.jl?branch=master)
 
 The Principal Moment Analysis App is a simple GUI Application for exploring data sets using Principal Moment Analysis.
-More information coming soon.
+See below for usage instructions.
 
-See also:
+For more information about Principal Moment Analysis, please refer to:
 
 * [Principal Moment Analysis home page](https://principalmomentanalysis.github.io/).
 * [PrincipalMomentAnalysis.jl](https://principalmomentanalysis.github.io/PrincipalMomentAnalysis.jl).
+
+If you want to cite our work, please use:
+
+> [Fontes, M., & Henningsson, R. (2020). Principal Moment Analysis. arXiv arXiv:2003.04208.](https://arxiv.org/abs/2003.04208)
 
 ## Installation
 To install PrincipalMomentAnalysisApp.jl, start Julia and type:
@@ -86,6 +90,8 @@ The plotting options allow you to visualize the samples and the simplices after 
 * Points: Enable/disable drawing of the sample points and choose their size.
 * Lines: Enable/disable drawing of the simplex edges and choose line width.
 * Triangles: Enable/disable drawing of the simplex facets and choose opacity.
+
+Press the "Show Plot" button to open the plot in a new window.
 
 
 ### Export Principal Moment Axes
