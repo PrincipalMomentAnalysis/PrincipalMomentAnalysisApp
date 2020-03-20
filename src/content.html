@@ -133,9 +133,9 @@
 </style>
 <div>
     <div class="group">
-        <p class="subtitle">Samples</p>
+        <p class="subtitle">Input Data</p>
         Use rows as samples <input type="checkbox" id="loadRowsAsSamples" onclick='setValue("loadrowsassamples", this.checked.toString())' checked><br>
-        <button onclick='var electron = require("electron"); var fp = electron.remote.dialog.showOpenDialog({properties: ["openFile"]}); if (!(fp===undefined)) { setValue("samplefilepath", fp[0]); sendMessage(["loadsample"]); }'>Load sample</button>
+        <button onclick='var electron = require("electron"); var fp = electron.remote.dialog.showOpenDialog({properties: ["openFile"]}); if (!(fp===undefined)) { setValue("samplefilepath", fp[0]); sendMessage(["loadsample"]); }'>Open file</button>
         <div class="group">
             <p id="info"></p>
         </div>
@@ -151,7 +151,7 @@
         </p>
     </div>
     <div class="group">
-        <p class="subtitle">Parameters</p>
+        <p class="subtitle">Dimension Reduction</p>
         <div id="dimReductionMethodGroup">
             <p>
                 Dimension Reduction:
@@ -173,11 +173,11 @@
             <select id="timeAnnot" onchange='setValue("timeannot",this.value)'></select>
             <p>Number of Nearest Neighbors:</p>
             <input type="number" id="kNearestNeighbors" min="0" max="1000000" value="0" onchange='setValue("knearestneighbors",this.value)'>
-            <p>Nearest Neighbors distance:</p>
+            <p>Nearest Neighbors Distance:</p>
             <input type="range" id="distNearestNeighbors" min="0" max="1" step="0.001" value="0" onchange='setValue("distnearestneighbors",this.value)'> </div>
     </div>
     <div class="group">
-        <p class="subtitle">Plot</p>
+        <p class="subtitle">Plotting</p>
         <p>
             X axis:
             <select id="xAxis" onchange='setValue("xaxis",this.value)'>
