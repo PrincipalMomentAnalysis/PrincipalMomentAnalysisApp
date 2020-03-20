@@ -3,7 +3,8 @@ function plotsimplices(V, G, colorBy, colorDict;
 	                   title="",
 	                   opacity=0.3, markerSize=5, lineWidth=2,
 	                   shapeBy=nothing, shapeDict=nothing,
-	                   width=1536, height=768)
+	                   width=1536, height=768,
+	                   xLabel="x", yLabel="y", zLabel="z")
 	traces = GenericTrace[]
 
 	# plot each group in different colors
@@ -86,7 +87,8 @@ function plotsimplices(V, G, colorBy, colorDict;
 	end
 
 
-	layout = Layout(autosize=false, width=width, height=height, margin=attr(l=0, r=0, b=0, t=65), title=title)
+	layout = Layout(autosize=false, width=width, height=height, margin=attr(l=0, r=0, b=0, t=65), title=title,
+	                scene=attr(xaxis=attr(title=xLabel), yaxis=attr(title=yLabel), zaxis=attr(title=zLabel)))
 	# layout = Layout(margin=attr(l=0, r=0, b=0, t=65), title=title)
 	#plot(traces, layout)
 	traces, layout # return plot args rather than plot because of threading issues.

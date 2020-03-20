@@ -30,7 +30,9 @@
         setValue("dimreductionmethod",   getChecked("dimReductionMethodGroup"));
         setValue("knearestneighbors",    document.getElementById("kNearestNeighbors").value);
         setValue("distnearestneighbors", document.getElementById("distNearestNeighbors").value);
-        setValue("plotdims",             getChecked("plotDimsGroup"));
+        setValue("xaxis",                document.getElementById("xAxis").value);
+        setValue("yaxis",                document.getElementById("yAxis").value);
+        setValue("zaxis",                document.getElementById("zAxis").value);
         setValue("plotwidth",            document.getElementById("plotWidth").value);
         setValue("plotheight",           document.getElementById("plotHeight").value);
         setValue("showpoints",           document.getElementById("showPoints").checked.toString());
@@ -176,59 +178,93 @@
     </div>
     <div class="group">
         <p class="subtitle">Plot</p>
-        <div id="plotDimsGroup">
+        <p>
+            X axis:
+            <select id="xAxis" onchange='setValue("xaxis",this.value)'>
+                <option value= "1" selected>PMA1 </option>
+                <option value= "2"         >PMA2 </option>
+                <option value= "3"         >PMA3 </option>
+                <option value= "4"         >PMA4 </option>
+                <option value= "5"         >PMA5 </option>
+                <option value= "6"         >PMA6 </option>
+                <option value= "7"         >PMA7 </option>
+                <option value= "8"         >PMA8 </option>
+                <option value= "9"         >PMA9 </option>
+                <option value="10"         >PMA10</option>
+            </select>&nbsp;&nbsp;
+            Y axis:
+            <select id="yAxis" onchange='setValue("yaxis",this.value)'>
+                <option value= "1"         >PMA1 </option>
+                <option value= "2" selected>PMA2 </option>
+                <option value= "3"         >PMA3 </option>
+                <option value= "4"         >PMA4 </option>
+                <option value= "5"         >PMA5 </option>
+                <option value= "6"         >PMA6 </option>
+                <option value= "7"         >PMA7 </option>
+                <option value= "8"         >PMA8 </option>
+                <option value= "9"         >PMA9 </option>
+                <option value="10"         >PMA10</option>
+            </select>&nbsp;&nbsp;
+            Z axis:
+            <select id="zAxis" onchange='setValue("zaxis",this.value)'>
+                <option value= "1"         >PMA1 </option>
+                <option value= "2"         >PMA2 </option>
+                <option value= "3" selected>PMA3 </option>
+                <option value= "4"         >PMA4 </option>
+                <option value= "5"         >PMA5 </option>
+                <option value= "6"         >PMA6 </option>
+                <option value= "7"         >PMA7 </option>
+                <option value= "8"         >PMA8 </option>
+                <option value= "9"         >PMA9 </option>
+                <option value="10"         >PMA10</option>
+            </select>
+        </p>
+        <p>
+            Plot width: <input type="number" id="plotWidth"  min="0" max="10000" value="1024" onchange='setValue("plotwidth",this.value)'>
+            height:     <input type="number" id="plotHeight" min="0" max="10000" value="768"  onchange='setValue("plotheight",this.value)'>
+        </p>
+        <div id="colorByGroup">
             <p>
-                Plot dimension:
-                    <!-- <input type="radio" name="plotdims" value="2"        >2 -->
-                    <input type="radio" name="plotdims" value="3" onclick='setValue("plotdims", "3")' checked>3
+                Color:
+                <input type="radio" name="colorby" value="None"   onclick='document.getElementById("colorAnnot").disabled=true;  setValue("colorby","None")'        >None&nbsp;
+                <input type="radio" name="colorby" value="Auto"   onclick='document.getElementById("colorAnnot").disabled=true;  setValue("colorby","Auto")' checked>Auto&nbsp;
+                <input type="radio" name="colorby" value="Custom" onclick='document.getElementById("colorAnnot").disabled=false; setValue("colorby","Custom")'      >Custom
+                <select id="colorAnnot" onchange='setValue("colorannot",this.value)' disabled></select>
             </p>
-            <p>
-                Plot width: <input type="number" id="plotWidth"  min="0" max="10000" value="1024" onchange='setValue("plotwidth",this.value)'>
-                height:     <input type="number" id="plotHeight" min="0" max="10000" value="768"  onchange='setValue("plotheight",this.value)'>
-            </p>
-            <div id="colorByGroup">
-                <p>
-                    Color:
-                    <input type="radio" name="colorby" value="None"   onclick='document.getElementById("colorAnnot").disabled=true;  setValue("colorby","None")'        >None&nbsp;
-                    <input type="radio" name="colorby" value="Auto"   onclick='document.getElementById("colorAnnot").disabled=true;  setValue("colorby","Auto")' checked>Auto&nbsp;
-                    <input type="radio" name="colorby" value="Custom" onclick='document.getElementById("colorAnnot").disabled=false; setValue("colorby","Custom")'      >Custom
-                    <select id="colorAnnot" onchange='setValue("colorannot",this.value)' disabled></select>
-                </p>
-            </div>
-            <!-- <div id="shapeByGroup">
-                <p>
-                    Marker shape:
-                    <input type="radio" name="shapeby" value="None"   onclick='document.getElementById("shapeAnnot").disabled=true;  setValue("shapeby","None")'   checked>None&nbsp;
-                    <input type="radio" name="shapeby" value="Custom" onclick='document.getElementById("shapeAnnot").disabled=false; setValue("shapeby","Custom")'        >Custom
-                    <select id="shapeAnnot" onchange='setValue("shapeannot",this.value)' disabled></select>
-                </p>
-            </div> -->
-            <br>
-            <table>
-                <tr>
-                    <th></th>
-                    <th>Show</th>
-                </tr>
-                <tr>
-                    <td>Points</td>
-                    <td class="centercol"><input type="checkbox" id="showPoints" onclick='setValue("showpoints", this.checked.toString())' checked></td>
-                    <td>Size:</td>
-                    <td class="leftcol"><input type="number" id="markerSize" min="0" max="100" value="4" step="0.01" onchange='setValue("markersize",this.value)'></td>
-                </tr>
-                <tr>
-                    <td>Lines</td>
-                    <td class="centercol"><input type="checkbox" id="showLines" onclick='setValue("showlines", this.checked.toString())' checked></td>
-                    <td>Width:</td>
-                    <td class="leftcol"><input type="number" id="lineWidth" min="0" max="100" value="1" step="0.01" onchange='setValue("linewidth",this.value)'></td>
-                </tr>
-                <tr>
-                    <td>Triangles</td>
-                    <td class="centercol"><input type="checkbox" id="showTriangles" onclick='setValue("showtriangles", this.checked.toString())'></td>
-                    <td>Opacity:</td>
-                    <td class="leftcol"><input type="number" id="triangleOpacity" min="0" max="1" value="0.05" step="0.001" onchange='setValue("triangleopacity",this.value)'></td>
-                </tr>
-            </table>
         </div>
+        <!-- <div id="shapeByGroup">
+            <p>
+                Marker shape:
+                <input type="radio" name="shapeby" value="None"   onclick='document.getElementById("shapeAnnot").disabled=true;  setValue("shapeby","None")'   checked>None&nbsp;
+                <input type="radio" name="shapeby" value="Custom" onclick='document.getElementById("shapeAnnot").disabled=false; setValue("shapeby","Custom")'        >Custom
+                <select id="shapeAnnot" onchange='setValue("shapeannot",this.value)' disabled></select>
+            </p>
+        </div> -->
+        <br>
+        <table>
+            <tr>
+                <th></th>
+                <th>Show</th>
+            </tr>
+            <tr>
+                <td>Points</td>
+                <td class="centercol"><input type="checkbox" id="showPoints" onclick='setValue("showpoints", this.checked.toString())' checked></td>
+                <td>Size:</td>
+                <td class="leftcol"><input type="number" id="markerSize" min="0" max="100" value="4" step="0.01" onchange='setValue("markersize",this.value)'></td>
+            </tr>
+            <tr>
+                <td>Lines</td>
+                <td class="centercol"><input type="checkbox" id="showLines" onclick='setValue("showlines", this.checked.toString())' checked></td>
+                <td>Width:</td>
+                <td class="leftcol"><input type="number" id="lineWidth" min="0" max="100" value="1" step="0.01" onchange='setValue("linewidth",this.value)'></td>
+            </tr>
+            <tr>
+                <td>Triangles</td>
+                <td class="centercol"><input type="checkbox" id="showTriangles" onclick='setValue("showtriangles", this.checked.toString())'></td>
+                <td>Opacity:</td>
+                <td class="leftcol"><input type="number" id="triangleOpacity" min="0" max="1" value="0.05" step="0.001" onchange='setValue("triangleopacity",this.value)'></td>
+            </tr>
+        </table>
         <button onclick='sendMessage(["showplot"])'>Show plot</button>
     </div>
     <div class="group">
@@ -248,20 +284,18 @@
             </tr>
             <tr>
                 <td class="export">
-                    <p>PMA:
-                        <select id="exportSingleDim" onchange='setValue("exportsingledim",this.value)'>
-                            <option value= "1" selected> 1</option>
-                            <option value= "2"         > 2</option>
-                            <option value= "3"         > 3</option>
-                            <option value= "4"         > 4</option>
-                            <option value= "5"         > 5</option>
-                            <option value= "6"         > 6</option>
-                            <option value= "7"         > 7</option>
-                            <option value= "8"         > 8</option>
-                            <option value= "9"         > 9</option>
-                            <option value="10"         >10</option>
-                        </select>
-                    </p>
+                    <select id="exportSingleDim" onchange='setValue("exportsingledim",this.value)'>
+                        <option value= "1" selected>PMA1 </option>
+                        <option value= "2"         >PMA2 </option>
+                        <option value= "3"         >PMA3 </option>
+                        <option value= "4"         >PMA4 </option>
+                        <option value= "5"         >PMA5 </option>
+                        <option value= "6"         >PMA6 </option>
+                        <option value= "7"         >PMA7 </option>
+                        <option value= "8"         >PMA8 </option>
+                        <option value= "9"         >PMA9 </option>
+                        <option value="10"         >PMA10</option>
+                    </select>
                     <p>Sort:
                         <select id="exportSingleSort" onchange='setValue("exportsinglesort",this.value)'>
                             <option value= "Abs"        selected>Absolute Value</option>
@@ -277,18 +311,18 @@
                     </button>
                 </td>
                 <td class="export">
-                    <p>PMAs 1 to:
+                    <p>PMA1 to:
                     <select id="exportMultipleDim" onchange='setValue("exportmultipledim",this.value)'>
-                        <option value= "1"         > 1</option>
-                        <option value= "2"         > 2</option>
-                        <option value= "3" selected> 3</option>
-                        <option value= "4"         > 4</option>
-                        <option value= "5"         > 5</option>
-                        <option value= "6"         > 6</option>
-                        <option value= "7"         > 7</option>
-                        <option value= "8"         > 8</option>
-                        <option value= "9"         > 9</option>
-                        <option value="10"         >10</option>
+                        <option value= "1"         >PMA1 </option>
+                        <option value= "2"         >PMA2 </option>
+                        <option value= "3" selected>PMA3 </option>
+                        <option value= "4"         >PMA4 </option>
+                        <option value= "5"         >PMA5 </option>
+                        <option value= "6"         >PMA6 </option>
+                        <option value= "7"         >PMA7 </option>
+                        <option value= "8"         >PMA8 </option>
+                        <option value= "9"         >PMA9 </option>
+                        <option value="10"         >PMA10</option>
                     </select>
                     </p>
                     <button onclick='var electron = require("electron");

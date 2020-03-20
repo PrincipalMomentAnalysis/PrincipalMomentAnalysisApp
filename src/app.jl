@@ -140,12 +140,14 @@ function dimreduction(st, input::Dict{String,Any})
 end
 
 function makeplot(st, input::Dict{String,Any})
-	@assert length(input)==15
+	@assert length(input)==17
 	reduced            = input["reduced"]::ReducedSampleData
 	dimReductionMethod = Symbol(input["dimreductionmethod"])
 	sampleAnnot        = Symbol(input["sampleannot"])
 	sampleSimplices    = input["samplesimplices"]
-	plotDims           = parse(Int,input["plotdims"])
+	xaxis              = parse(Int,input["xaxis"])
+	yaxis              = parse(Int,input["yaxis"])
+	zaxis              = parse(Int,input["zaxis"])
 	plotWidth          = parse(Int,input["plotwidth"])
 	plotHeight         = parse(Int,input["plotheight"])
 	showPoints         = parse(Bool,input["showpoints"])
@@ -158,8 +160,6 @@ function makeplot(st, input::Dict{String,Any})
 	colorAnnot         = Symbol(input["colorannot"])
 	# shapeByMethod      = Symbol(input["shapeby"])
 	# shapeAnnot         = Symbol(input["shapeannot"])
-
-	@assert plotDims==3 "Only 3 plotting dims supported for now"
 
 	title = dimReductionMethod
 
@@ -175,15 +175,13 @@ function makeplot(st, input::Dict{String,Any})
 
 	# TODO: handle missing values in sample annotations?
 
-	plotArgs = nothing
-	if plotDims==3
-		plotArgs = plotsimplices(reduced.F.V,sampleSimplices,colorBy,colorDict, title=title,
-		                         drawPoints=showPoints, drawLines=showLines, drawTriangles=showTriangles,
-		                         opacity=triangleOpacity, markerSize=markerSize, lineWidth=lineWidth,
-		                         shapeBy=shapeBy, shapeDict=shapeDict,
-		                         width=plotWidth, height=plotHeight)
-	end
-	plotArgs
+	dims = [xaxis, yaxis, zaxis]
+	plotArgs = plotsimplices(reduced.F.V[:,dims],sampleSimplices,colorBy,colorDict, title=title,
+	                         drawPoints=showPoints, drawLines=showLines, drawTriangles=showTriangles,
+	                         opacity=triangleOpacity, markerSize=markerSize, lineWidth=lineWidth,
+	                         shapeBy=shapeBy, shapeDict=shapeDict,
+	                         width=plotWidth, height=plotHeight,
+	                         xLabel=string("PMA",xaxis), yLabel=string("PMA",yaxis), zLabel=string("PMA",zaxis))
 end
 
 showplot(plotArgs, toGUI::Channel) = put!(toGUI, :displayplot=>plotArgs)
@@ -296,7 +294,9 @@ function JobGraph()
 	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"dimreductionmethod")=>makeplotID, "dimreductionmethod")
 	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"sampleannot")=>makeplotID, "sampleannot")
 	add_dependency!(scheduler, setupSimplicesID=>makeplotID, "samplesimplices")
-	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"plotdims")=>makeplotID, "plotdims")
+	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"xaxis")=>makeplotID, "xaxis")
+	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"yaxis")=>makeplotID, "yaxis")
+	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"zaxis")=>makeplotID, "zaxis")
 	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"plotwidth")=>makeplotID, "plotwidth")
 	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"plotheight")=>makeplotID, "plotheight")
 	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"showpoints")=>makeplotID, "showpoints")
