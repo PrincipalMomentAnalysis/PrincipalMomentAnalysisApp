@@ -40,8 +40,7 @@ Note that this requires julia to be in the PATH.
 
 ## Using the App
 
-![App before loading a file.](https://github.com/PrincipalMomentAnalysis/PrincipalMomentAnalysisApp.jl/blob/master/docs/src/images/app1.png)
-![App after loading a file.](https://github.com/PrincipalMomentAnalysis/PrincipalMomentAnalysisApp.jl/blob/master/docs/src/images/app2.png)
+<img src="https://github.com/PrincipalMomentAnalysis/PrincipalMomentAnalysisApp.jl/blob/master/docs/src/images/app1.png" alt="App before loading a file" width="341" height="563">&nbsp;&nbsp;<img src="https://github.com/PrincipalMomentAnalysis/PrincipalMomentAnalysisApp.jl/blob/master/docs/src/images/app2.png" alt="App after loading a file" width="341" height="563">
 
 ### Loading a file
 
