@@ -40,6 +40,9 @@ Note that this requires julia to be in the PATH.
 
 ## Using the App
 
+![App before loading a file.](https://principalmomentanalysis.github.com/PrincipalMomentAnalysisApp.jl/docs/src/images/app1.png)
+![App after loading a file.](https://principalmomentanalysis.github.com/PrincipalMomentAnalysisApp.jl/docs/src/images/app2.png)
+
 ### Loading a file
 
 PrincipalMomentAnalysisApp can load *.csv* (comma-separated values) or *.tsv* (tab-separated values) files, *.txt* and other extensions are treated as *.tsv*. 
