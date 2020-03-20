@@ -41,6 +41,7 @@
         setValue("triangleopacity",      document.getElementById("triangleOpacity").value);
         setValue("colorby",              getChecked("colorByGroup"));
         // setValue("shapeby",              getChecked("shapeByGroup"));
+        setValue("exportmode",           getChecked("exportModeGroup"));
         setValue("exportsingledim",      document.getElementById("exportSingleDim").value);
         setValue("exportsinglesort",     document.getElementById("exportSingleSort").value);
         setValue("exportmultipledim",    document.getElementById("exportMultipleDim").value);
@@ -114,12 +115,16 @@
     {
       text-align: left;
     }
-    .exportcol {
+    th.export {
+        padding: 0 10px 0 10px;
+        text-align: center;
+    }
+    td.export {
         padding: 0 10px 0 10px;
         border: 1px solid gray;
         text-align: center;
     }
-    table.center {
+    table.export {
         margin-left:auto;
         margin-right:auto;
     }
@@ -228,13 +233,21 @@
     </div>
     <div class="group">
         <p class="subtitle">Export PMAs</p>
-        <table class="center">
+        <table class="export">
             <tr>
-                <th class="exportcol">Single PMA</th>
-                <th class="exportcol">Muliple PMAs</th>
+                <th colspan="2" class="export">
+                    <div id="exportModeGroup">
+                        <input type="radio" name="exportmode" value="Variables" onclick='setValue("exportmode", this.value)' checked>Variables<br>
+                        <input type="radio" name="exportmode" value="Samples"   onclick='setValue("exportmode", this.value)'        >Samples
+                    </div>
+                </th>
             </tr>
             <tr>
-                <td class="exportcol">
+                <th class="export">Single PMA</th>
+                <th class="export">Muliple PMAs</th>
+            </tr>
+            <tr>
+                <td class="export">
                     <p>PMA:
                         <select id="exportSingleDim" onchange='setValue("exportsingledim",this.value)'>
                             <option value= "1" selected> 1</option>
@@ -263,7 +276,7 @@
                         Export
                     </button>
                 </td>
-                <td class="exportcol">
+                <td class="export">
                     <p>PMAs 1 to:
                     <select id="exportMultipleDim" onchange='setValue("exportmultipledim",this.value)'>
                         <option value= "1"         > 1</option>

@@ -190,16 +190,25 @@ showplot(plotArgs, toGUI::Channel) = put!(toGUI, :displayplot=>plotArgs)
 
 
 function exportsingle(st, input::Dict{String,Any})
-	@assert length(input)==4
+	@assert length(input)==5
 	reduced  = input["reduced"]::ReducedSampleData
+	mode     = Symbol(input["mode"])
 	filepath = input["filepath"]
 	sortMode = Symbol(input["sort"])
 	dim      = parse(Int,input["dim"])
+	@assert mode in (:Variables, :Samples)
 	@assert sortMode in (:Abs, :Descending, :Ascending, :Original)
 
-	df = copy(reduced.va)
 	colName = Symbol("PMA",dim)
-	df[!,colName] = reduced.F.U[:,dim]
+
+	if mode == :Variables
+		df = copy(reduced.va)
+		df[!,colName] = reduced.F.U[:,dim]
+	else
+		df = copy(reduced.sa[!,1:1])
+		df[!,colName] = reduced.F.V[:,dim]
+	end
+
 
 	if sortMode==:Abs
 		sort!(df, colName, by=abs, rev=true)
@@ -213,14 +222,23 @@ function exportsingle(st, input::Dict{String,Any})
 end
 
 function exportmultiple(st, input::Dict{String,Any})
-	@assert length(input)==3
+	@assert length(input)==4
 	reduced  = input["reduced"]::ReducedSampleData
+	mode     = Symbol(input["mode"])
 	filepath = input["filepath"]
 	dim      = parse(Int,input["dim"])
+	@assert mode in (:Variables, :Samples)
 
-	df = copy(reduced.va)
+	if mode == :Variables
+		df = copy(reduced.va)
+		PMAs = reduced.F.U
+	else
+		df = copy(reduced.sa[!,1:1])
+		PMAs = reduced.F.V
+	end
+
 	for d in 1:dim
-		df[!,Symbol("PMA",d)] = reduced.F.U[:,d]
+		df[!,Symbol("PMA",d)] = PMAs[:,d]
 	end
 
 	CSV.write(filepath, df, delim=getdelim(filepath))
@@ -295,12 +313,14 @@ function JobGraph()
 
 	exportSingleID = createjob!(exportsingle, scheduler, "exportsingle")
 	add_dependency!(scheduler, dimreductionID=>exportSingleID, "reduced")
+	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"exportmode")=>exportSingleID, "mode")
 	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"exportsinglepath")=>exportSingleID, "filepath")
 	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"exportsingledim")=>exportSingleID, "dim")
 	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"exportsinglesort")=>exportSingleID, "sort")
 
 	exportMultipleID = createjob!(exportmultiple, scheduler, "exportmultiple")
 	add_dependency!(scheduler, dimreductionID=>exportMultipleID, "reduced")
+	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"exportmode")=>exportMultipleID, "mode")
 	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"exportmultiplepath")=>exportMultipleID, "filepath")
 	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"exportmultipledim")=>exportMultipleID, "dim")
 
