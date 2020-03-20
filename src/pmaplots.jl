@@ -8,8 +8,7 @@ function plotsimplices(V, G, colorBy, colorDict;
 
 	# plot each group in different colors
 	if drawPoints
-		# testing plotting with colorscale instead of dict when colorDict=nothing.
-		# TODO: merge the two cases below and implement for lines/triangles too
+		# TODO: merge the two cases below?
 
 		if colorDict != nothing
 			for cb in unique(colorBy)
@@ -99,3 +98,6 @@ function colordict(x::AbstractArray)
 	k = unique(x)
 	Dict(s=>c for (s,c) in zip(k,_distinguishable_colors(length(k))))
 end
+
+const SHAPES = ["circle","square","diamond","cross","x","triangle-up","triangle-down","triangle-left","triangle-right","triangle-ne","triangle-se","triangle-sw","triangle-nw","pentagon","hexagon","hexagon2","octagon","star","hexagram","star-triangle-up","star-triangle-down","star-square","star-diamond","diamond-tall","diamond-wide","hourglass","bowtie","circle-cross","circle-x","square-cross","square-x","diamond-cross","diamond-x","cross-thin","x-thin","asterisk","hash","y-up","y-down","y-left","y-right","line-ew","line-ns","line-ne","line-nw","circle-open","square-open","diamond-open","cross-open","x-open","triangle-up-open","triangle-down-open","triangle-left-open","triangle-right-open","triangle-ne-open","triangle-se-open","triangle-sw-open","triangle-nw-open","pentagon-open","hexagon-open","hexagon2-open","octagon-open","star-open","hexagram-open","star-triangle-up-open","star-triangle-down-open","star-square-open","star-diamond-open","diamond-tall-open","diamond-wide-open","hourglass-open","bowtie-open","circle-cross-open","circle-x-open","square-cross-open","square-x-open","diamond-cross-open","diamond-x-open","cross-thin-open","x-thin-open","asterisk-open","hash-open","y-up-open","y-down-open","y-left-open","y-right-open","line-ew-open","line-ns-open","line-ne-open","line-nw-open","","circle-dot","square-dot","diamond-dot","cross-dot","x-dot","triangle-up-dot","triangle-down-dot","triangle-left-dot","triangle-right-dot","triangle-ne-dot","triangle-se-dot","triangle-sw-dot","triangle-nw-dot","pentagon-dot","hexagon-dot","hexagon2-dot","octagon-dot","star-dot","hexagram-dot","star-triangle-up-dot","star-triangle-down-dot","star-square-dot","star-diamond-dot","diamond-tall-dot","diamond-wide-dot","hash-dot","circle-open-dot","square-open-dot","diamond-open-dot","cross-open-dot","x-open-dot","triangle-up-open-dot","triangle-down-open-dot","triangle-left-open-dot","triangle-right-open-dot","triangle-ne-open-dot","triangle-se-open-dot","triangle-sw-open-dot","triangle-nw-open-dot","pentagon-open-dot","hexagon-open-dot","hexagon2-open-dot","octagon-open-dot","star-open-dot","hexagram-open-dot","star-triangle-up-open-dot","star-triangle-down-open-dot","star-square-open-dot","star-diamond-open-dot","diamond-tall-open-dot","diamond-wide-open-dot","hash-open-dot"]
+shapedict(x::AbstractArray) = Dict(v=>SHAPES[mod(i-1,length(SHAPES))+1] for (i,v) in enumerate(unique(x)))

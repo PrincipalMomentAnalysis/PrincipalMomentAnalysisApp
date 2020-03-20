@@ -154,6 +154,8 @@ function makeplot(st, input::Dict{String,Any})
 	triangleOpacity    = parse(Float64,input["triangleopacity"])
 	colorByMethod      = Symbol(input["colorby"])
 	colorAnnot         = Symbol(input["colorannot"])
+	# shapeByMethod      = Symbol(input["shapeby"])
+	# shapeAnnot         = Symbol(input["shapeannot"])
 
 	@assert plotDims==3 "Only 3 plotting dims supported for now"
 
@@ -161,16 +163,22 @@ function makeplot(st, input::Dict{String,Any})
 
 	colorByMethod == :Auto && (colorAnnot=sampleAnnot)
 	colorBy = colorByMethod == :None ? repeat([""],size(reduced.sa,1)) : reduced.sa[!,colorAnnot]
+	colorDict = (eltype(colorBy) <: Real) ? nothing : colordict(colorBy)
+
+	shapeBy, shapeDict = nothing, nothing
+	# if shapeByMethod == :Custom
+	# 	shapeBy = reduced.sa[!,shapeAnnot]
+	# 	shapeDict = shapedict(shapeBy)
+	# end
 
 	# TODO: handle missing values in sample annotations?
-
-	colorDict = (eltype(colorBy) <: Real) ? nothing : colordict(colorBy)
 
 	plotArgs = nothing
 	if plotDims==3
 		plotArgs = plotsimplices(reduced.F.V,sampleSimplices,colorBy,colorDict, title=title,
 		                         drawPoints=showPoints, drawLines=showLines, drawTriangles=showTriangles,
 		                         opacity=triangleOpacity, markerSize=markerSize, lineWidth=lineWidth,
+		                         shapeBy=shapeBy, shapeDict=shapeDict,
 		                         width=plotWidth, height=plotHeight)
 	end
 	plotArgs
@@ -240,6 +248,8 @@ function JobGraph()
 	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"triangleopacity")=>makeplotID, "triangleopacity")
 	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"colorby")=>makeplotID, "colorby")
 	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"colorannot")=>makeplotID, "colorannot")
+	# add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"shapeby")=>makeplotID, "shapeby")
+	# add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"shapeannot")=>makeplotID, "shapeannot")
 
 
 	JobGraph(scheduler,

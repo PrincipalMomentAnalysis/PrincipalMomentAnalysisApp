@@ -40,6 +40,7 @@
         setValue("linewidth",            document.getElementById("lineWidth").value);
         setValue("triangleopacity",      document.getElementById("triangleOpacity").value);
         setValue("colorby",              getChecked("colorByGroup"));
+        // setValue("shapeby",              getChecked("shapeByGroup"));
     }
     function setSampleStatus(status) {
         document.getElementById("info").innerHTML = status;
@@ -84,6 +85,8 @@
         setValue("timeannot", document.getElementById("timeAnnot").value)
         setDropDownItems("colorAnnot", annots);
         setValue("colorannot", document.getElementById("colorAnnot").value)
+        // setDropDownItems("shapeAnnot", annots);
+        // setValue("shapeannot", document.getElementById("shapeAnnot").value)
     }
 </script>
 <style>
@@ -175,6 +178,14 @@
                     <select id="colorAnnot" onchange='setValue("colorannot",this.value)' disabled></select>
                 </p>
             </div>
+            <!-- <div id="shapeByGroup">
+                <p>
+                    Marker shape:
+                    <input type="radio" name="shapeby" value="None"   onclick='document.getElementById("shapeAnnot").disabled=true;  setValue("shapeby","None")'   checked>None&nbsp;
+                    <input type="radio" name="shapeby" value="Custom" onclick='document.getElementById("shapeAnnot").disabled=false; setValue("shapeby","Custom")'        >Custom
+                    <select id="shapeAnnot" onchange='setValue("shapeannot",this.value)' disabled></select>
+                </p>
+            </div> -->
             <br>
             <table>
                 <tr>
