@@ -45,17 +45,14 @@ end
 	@test didExit
 end
 
-@testset "asyncexit" begin
+@testset "exit2" begin
 	app = MiniApp()
+	init(app)
 	put!(app.fromGUI, :exit=>[])
-	@async process_thread(app.jg, app.fromGUI, app.toGUI)
+	lastSchedulerTime = Ref{UInt64}(0)
 	didExit = false
 	for i=1:100
-		if isready(app.toGUI)
-			msg = take!(app.toGUI)
-			msg.first == :exited && (didExit=true; break)
-		end
-		sleep(0.05) # max runtime ~5s
+		process_step(app.jg, app.fromGUI, app.toGUI, lastSchedulerTime) || (didExit=true; break)
 	end
 	@test didExit
 end

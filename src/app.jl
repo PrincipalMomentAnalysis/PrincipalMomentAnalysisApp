@@ -344,66 +344,70 @@ setparam(jg::JobGraph, name::String, value) = setresult!(jg.scheduler, jg.paramI
 
 
 
-function process_thread(jg::JobGraph, fromGUI::Channel, toGUI::Channel)
-	try
-		scheduler = jg.scheduler
-		lastSchedulerTime = UInt64(0)
 
-		while true
-			# @info "[Processing] tick"
-			timeNow = time_ns()
-			if isready(fromGUI)
-				try
-					msg = take!(fromGUI)
-					msgName = msg.first
-					msgArgs = msg.second
-					@info "[Processing] Got message: $msgName $msgArgs"
+function process_step(jg::JobGraph, fromGUI::Channel, toGUI::Channel, lastSchedulerTime::Ref{UInt64})
+	scheduler = jg.scheduler
 
-					if msgName == :exit
-						break
-					elseif msgName == :cancel
-						@info "[Processing] Cancelling all future events."
-						cancelall!(scheduler)
-					elseif msgName == :setvalue
-						varName = msgArgs[1]
-						value = msgArgs[2]
-						if haskey(jg.paramIDs, varName)
-							setresult!(scheduler, jg.paramIDs[varName], value)
-						else
-							@warn "Unknown variable name: $varName"
-						end
-					elseif msgName == :loadsample
-						schedule!(x->showsampleannotnames(x,toGUI), scheduler, jg.loadSampleID)
-					elseif msgName == :showplot
-						schedule!(x->showplot(x,toGUI), scheduler, jg.makeplotID)
-					elseif msgName == :exportsingle
-						schedule!(scheduler, jg.exportSingleID)
-					elseif msgName == :exportmultiple
-						schedule!(scheduler, jg.exportMultipleID)
-					else
-						@warn "Unknown message type: $(msgName)"
-					end
-				catch e
-					@warn "[Processing] Error processing GUI message."
-					showerror(stdout, e, catch_backtrace())
+	# @info "[Processing] tick"
+	timeNow = time_ns()
+	if isready(fromGUI)
+		try
+			msg = take!(fromGUI)
+			msgName = msg.first
+			msgArgs = msg.second
+			@info "[Processing] Got message: $msgName $msgArgs"
+
+			if msgName == :exit
+				return false
+			elseif msgName == :cancel
+				@info "[Processing] Cancelling all future events."
+				cancelall!(scheduler)
+			elseif msgName == :setvalue
+				varName = msgArgs[1]
+				value = msgArgs[2]
+				if haskey(jg.paramIDs, varName)
+					setresult!(scheduler, jg.paramIDs[varName], value)
+				else
+					@warn "Unknown variable name: $varName"
 				end
-				setsamplestatus(jg, toGUI)
-			elseif wantstorun(scheduler) || (isactive(scheduler) && (timeNow-lastSchedulerTime)/1e9 > 5.0)
-				lastSchedulerTime = timeNow
-				try
-					step!(scheduler)
-					status = statusstring(scheduler)
-					@info "Job status: $status"
-				catch e
-					@warn "[Processing] Error processing event."
-					showerror(stdout, e, catch_backtrace())
-				end
-				setsamplestatus(jg, toGUI)
+			elseif msgName == :loadsample
+				schedule!(x->showsampleannotnames(x,toGUI), scheduler, jg.loadSampleID)
+			elseif msgName == :showplot
+				schedule!(x->showplot(x,toGUI), scheduler, jg.makeplotID)
+			elseif msgName == :exportsingle
+				schedule!(scheduler, jg.exportSingleID)
+			elseif msgName == :exportmultiple
+				schedule!(scheduler, jg.exportMultipleID)
 			else
-				yield()
+				@warn "Unknown message type: $(msgName)"
 			end
+		catch e
+			@warn "[Processing] Error processing GUI message."
+			showerror(stdout, e, catch_backtrace())
 		end
+		setsamplestatus(jg, toGUI)
+	elseif wantstorun(scheduler) || (isactive(scheduler) && (timeNow-lastSchedulerTime[])/1e9 > 5.0)
+		lastSchedulerTime[] = timeNow
+		try
+			step!(scheduler)
+			status = statusstring(scheduler)
+			@info "Job status: $status"
+		catch e
+			@warn "[Processing] Error processing event."
+			showerror(stdout, e, catch_backtrace())
+		end
+		setsamplestatus(jg, toGUI)
+	else
+		yield()
+	end
+	true
+end
 
+function process_thread(jg::JobGraph, fromGUI::Channel, toGUI::Channel)
+	lastSchedulerTime = Ref{UInt64}(0)
+	try
+		while process_step(jg, fromGUI, toGUI, lastSchedulerTime)
+		end
 	catch e
 		@warn "[Processing] Fatal error."
 		showerror(stdout, e, catch_backtrace())
@@ -411,6 +415,7 @@ function process_thread(jg::JobGraph, fromGUI::Channel, toGUI::Channel)
 	@info "[Processing] Exiting thread."
 	put!(toGUI, :exited=>nothing)
 end
+
 
 
 """
