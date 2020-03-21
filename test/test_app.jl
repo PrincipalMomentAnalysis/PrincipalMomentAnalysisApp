@@ -1,35 +1,3 @@
-struct MiniApp
-	jg::JobGraph
-	fromGUI::Channel{Pair{Symbol,Vector}}
-	toGUI::Channel{Pair{Symbol,Any}}
-end
-MiniApp() = MiniApp(JobGraph(), Channel{Pair{Symbol,Vector}}(Inf), Channel{Pair{Symbol,Any}}(Inf))
-
-function init(app::MiniApp)
-	put!(app.fromGUI, :setvalue=>Any["samplesimplexmethod", "SA"])
-	put!(app.fromGUI, :setvalue=>Any["loadrowsassamples", "true"])
-	put!(app.fromGUI, :setvalue=>Any["normalizemethod", "Mean=0"])
-	put!(app.fromGUI, :setvalue=>Any["dimreductionmethod", "PMA"])
-	put!(app.fromGUI, :setvalue=>Any["knearestneighbors", "0"])
-	put!(app.fromGUI, :setvalue=>Any["distnearestneighbors", "0"])
-	put!(app.fromGUI, :setvalue=>Any["xaxis", "1"])
-	put!(app.fromGUI, :setvalue=>Any["yaxis", "2"])
-	put!(app.fromGUI, :setvalue=>Any["zaxis", "3"])
-	put!(app.fromGUI, :setvalue=>Any["plotwidth", "1024"])
-	put!(app.fromGUI, :setvalue=>Any["plotheight", "768"])
-	put!(app.fromGUI, :setvalue=>Any["showpoints", "true"])
-	put!(app.fromGUI, :setvalue=>Any["showlines", "true"])
-	put!(app.fromGUI, :setvalue=>Any["showtriangles", "false"])
-	put!(app.fromGUI, :setvalue=>Any["markersize", "4"])
-	put!(app.fromGUI, :setvalue=>Any["linewidth", "1"])
-	put!(app.fromGUI, :setvalue=>Any["triangleopacity", "0.05"])
-	put!(app.fromGUI, :setvalue=>Any["colorby", "Auto"])
-	put!(app.fromGUI, :setvalue=>Any["exportmode", "Variables"])
-	put!(app.fromGUI, :setvalue=>Any["exportsingledim", "1"])
-	put!(app.fromGUI, :setvalue=>Any["exportsinglesort", "Abs"])
-	put!(app.fromGUI, :setvalue=>Any["exportmultipledim", "3"]	)
-end
-
 @testset "app" begin
 
 @testset "exit" begin
@@ -48,13 +16,45 @@ end
 @testset "exit2" begin
 	app = MiniApp()
 	init(app)
-	put!(app.fromGUI, :exit=>[])
 	lastSchedulerTime = Ref{UInt64}(0)
-	didExit = false
-	for i=1:100
-		process_step(app.jg, app.fromGUI, app.toGUI, lastSchedulerTime) || (didExit=true; break)
-	end
-	@test didExit
+	put!(app.fromGUI, :exit=>[])
+	@test !runall(app)
+end
+
+@testset "data.tsv" begin
+	filepath = joinpath(@__DIR__, "data/data.tsv")
+
+	varIds = [Symbol("V$i") for i=1:40]
+	sampleIds = [string('S',lpad(i,2,'0')) for i=1:20]
+
+	app = MiniApp()
+	init(app)
+
+	# Open file
+	setvalue(app, Any["samplefilepath", filepath])
+	setvalue(app, Any["lastsampleannot", "Time"])
+	put!(app.fromGUI, :loadsample=>[])
+	@test runall(app)
+	dfSample = app.jg.scheduler.jobs[app.jg.loadSampleID].result
+	@test names(dfSample) == vcat([:SampleId, :Group, :Time], varIds)
+	@test dfSample.SampleId == sampleIds
+	@test size(dfSample)==(20,3+40)
+
+	# Dimension Reduction
+	setvalue(app, Any["samplesimplexmethod", "SA"])
+	setvalue(app, Any["sampleannot", "Group"])
+	put!(app.fromGUI, :dimreduction=>[])
+	@test runall(app)
+	reduced = app.jg.scheduler.jobs[app.jg.dimreductionID].result
+	@test reduced.sa == dfSample[!,1:3]
+	@test reduced.va[!,1] == varIds
+	@test size(reduced.F.U)==(40,10)
+	@test size(reduced.F.S)==(10,)
+	@test size(reduced.F.V)==(20,10)
+
+	# Exit
+	put!(app.fromGUI, :exit=>[])
+	@test !runall(app)
 end
 
 

@@ -372,6 +372,8 @@ function process_step(jg::JobGraph, fromGUI::Channel, toGUI::Channel, lastSchedu
 				end
 			elseif msgName == :loadsample
 				schedule!(x->showsampleannotnames(x,toGUI), scheduler, jg.loadSampleID)
+			elseif msgName == :dimreduction
+				schedule!(scheduler, jg.dimreductionID)
 			elseif msgName == :showplot
 				schedule!(x->showplot(x,toGUI), scheduler, jg.makeplotID)
 			elseif msgName == :exportsingle
