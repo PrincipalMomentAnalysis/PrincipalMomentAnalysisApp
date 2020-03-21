@@ -91,8 +91,70 @@ end
 	reduced = app.jg.scheduler.jobs[app.jg.dimreductionID].result
 	@test reduced.sa == dfSample[!,1:3]
 	@test reduced.va[!,1] == varIds
-	factorizationcmp(pma(X, neighborsimplices(X,k=2,r=0.5,dim=50,groupby=groupAnnot), nsv=10), reduced.F)
+	F = pma(X, neighborsimplices(X,k=2,r=0.5,dim=50,groupby=groupAnnot), nsv=10)
+	factorizationcmp(F, reduced.F)
 
+	# Exports
+	mktempdir() do temppath
+		for (dim,order,mode) in zip((1,3,7,10), ("Abs","Descending","Ascending","Original"), ("Samples","Variables","Samples","Variables"))
+			setvalue(app, Any["exportsingledim", "$dim"])
+			setvalue(app, Any["exportsinglesort", order])
+			setvalue(app, Any["exportmode", mode])
+			filepath = joinpath(temppath,"PMA$(dim)_$(mode)_$order.tsv")
+			setvalue(app, Any["exportsinglepath", filepath])
+			put!(app.fromGUI, :exportsingle=>[])
+			@test runall(app)
+			result = DataFrame(CSV.File(filepath, delim='\t', use_mmap=false, threaded=false))
+			colName = Symbol(:PMA,dim)
+			resultPMA = result[:,colName]
+
+			if mode=="Samples"
+				idCol = :SampleId
+				ids = sampleIds
+				PMA = reduced.F.V[:,dim]
+			else
+				idCol = :VariableId
+				ids = string.(varIds)
+				PMA = reduced.F.U[:,dim]
+			end
+
+			perm = collect(1:length(PMA))
+			if order=="Abs"
+				perm = sortperm(PMA, by=abs, rev=true)
+			elseif order=="Descending"
+				perm = sortperm(PMA, rev=true)
+			elseif order=="Ascending"
+				perm = sortperm(PMA)
+			end
+
+			@test names(result)==[idCol,colName]
+			@test result[!,idCol] == ids[perm]
+			@test resultPMA ≈ PMA[perm]
+		end
+
+
+		for (dim,mode) in zip((4,5), ("Samples","Variables"))
+			setvalue(app, Any["exportmultipledim", "$dim"])
+			setvalue(app, Any["exportmode", mode])
+			filepath = joinpath(temppath,"PMA$(dim)_$(mode).csv")
+			setvalue(app, Any["exportmultiplepath", filepath])
+			put!(app.fromGUI, :exportmultiple=>[])
+			@test runall(app)
+			result = DataFrame(CSV.File(filepath, delim=',', use_mmap=false, threaded=false))
+
+			colNames = Symbol.(:PMA,1:dim)
+
+			if mode=="Samples"
+				@test names(result)==vcat(:SampleId, colNames)
+				@test result.SampleId == sampleIds
+				@test convert(Matrix,result[:,colNames]) ≈ reduced.F.V[:,1:dim]
+			else
+				@test names(result)==vcat(:VariableId, colNames)
+				@test result.VariableId == string.(varIds)
+				@test convert(Matrix,result[:,colNames]) ≈ reduced.F.U[:,1:dim]
+			end
+		end
+	end
 
 	# Exit
 	put!(app.fromGUI, :exit=>[])

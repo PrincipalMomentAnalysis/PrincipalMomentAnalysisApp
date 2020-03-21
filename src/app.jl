@@ -67,7 +67,7 @@ function normalizesample(st, input::Dict{String,Any})
 	@assert nbrSampleAnnots != nothing "Couldn't find sample annotation: \"$lastSampleAnnot\""
 
 	sa = df[:, 1:nbrSampleAnnots]
-	va = DataFrame(VariableID=names(df)[nbrSampleAnnots+1:end])
+	va = DataFrame(VariableId=names(df)[nbrSampleAnnots+1:end])
 	originalData = convert(Matrix, df[!,nbrSampleAnnots+1:end])'
 	@assert eltype(originalData) <: Union{Number,Missing}
 

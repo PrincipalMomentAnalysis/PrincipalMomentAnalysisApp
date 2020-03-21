@@ -1,8 +1,9 @@
 using PrincipalMomentAnalysisApp
 using Test
 using PrincipalMomentAnalysis
-using DataFrames
 using LinearAlgebra
+using DataFrames
+using CSV
 
 import PrincipalMomentAnalysisApp: JobGraph, process_thread, process_step
 using PrincipalMomentAnalysisApp.Schedulers
