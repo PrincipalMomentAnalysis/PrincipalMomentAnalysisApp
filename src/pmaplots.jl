@@ -39,8 +39,8 @@ function plotsimplices(V, G, colorBy, colorDict;
 		z = Union{Nothing,Float64}[]
 		colorsRGB    = RGB{Float64}[]
 		colorsScalar = Float64[]
-		GSym = G .| G'
-		for ci in findall(GSym)
+		GK = G*G'
+		for ci in findall(GK.!=0)
 			r,c = Tuple(ci)
 			r>c || continue # just use lower triangular part
 			push!(x, V[r,1], V[c,1], nothing)
