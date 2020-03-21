@@ -346,10 +346,8 @@ setparam(jg::JobGraph, name::String, value) = setresult!(jg.scheduler, jg.paramI
 
 function process_thread(jg::JobGraph, fromGUI::Channel, toGUI::Channel)
 	try
-		# setup dependency graph
 		scheduler = jg.scheduler
 		lastSchedulerTime = UInt64(0)
-
 
 		while true
 			# @info "[Processing] tick"
@@ -375,7 +373,6 @@ function process_thread(jg::JobGraph, fromGUI::Channel, toGUI::Channel)
 							@warn "Unknown variable name: $varName"
 						end
 					elseif msgName == :loadsample
-						# schedule!(scheduler, jg.loadSampleID)
 						schedule!(x->showsampleannotnames(x,toGUI), scheduler, jg.loadSampleID)
 					elseif msgName == :showplot
 						schedule!(x->showplot(x,toGUI), scheduler, jg.makeplotID)
@@ -403,7 +400,7 @@ function process_thread(jg::JobGraph, fromGUI::Channel, toGUI::Channel)
 				end
 				setsamplestatus(jg, toGUI)
 			else
-				sleep(0.05)
+				yield()
 			end
 		end
 
@@ -471,8 +468,7 @@ function pmaapp(; return_job_graph=false)
 				processingThreadRunning = false
 			end
 		end
-		# yield() # Allow GUI to run
-		sleep(0.05) # Allow GUI to run
+		yield() # Allow GUI to run
 	end
 
 	@info "[GUI] Waiting for scheduler thread to finish."
@@ -491,37 +487,3 @@ function pmaapp(; return_job_graph=false)
 	return_job_graph ? jg : nothing
 end
 
-
-
-
-# function exportloadings(ds::SampleData, result::Result, filepath::String, varAnnot::Symbol, columns::Symbol, dims::Int, columnSort::Symbol;
-#                         dimReductionMethod::Symbol, sampleAnnotation::Symbol,
-#                         kwargs...)
-# 	@assert columns in (:All, :Selected)
-# 	@assert columnSort in (:Abs, :Descending)
-
-# 	df = DataFrame()
-# 	df[!,varAnnot] = ds.va[!,varAnnot]
-
-# 	if columns==:All
-# 		for i=1:min(dims,length(result.S))
-# 			colName = Symbol("$dimReductionMethod$i")
-# 			df[!,colName] = result.U[:,i]
-# 		end
-# 	elseif columns==:Selected
-# 		colName = Symbol("$dimReductionMethod$dims")
-# 		df[!,colName] = result.U[:,dims]
-
-# 		if columnSort==:Abs
-# 			sort!(df, colName, by=abs, rev=true)
-# 		elseif columnSort==:Descending
-# 			sort!(df, colName, rev=true)
-# 		end
-# 	end
-
-# 	# TODO: add CSV dependency and save using CSV.write() instead?
-# 	mat = Matrix{String}(undef, size(df,1)+1, size(df,2))
-# 	mat[1,:] .= string.(names(df))
-# 	mat[2:end,:] .= string.(df)
-# 	writedlm(filepath, mat, '\t')
-# end
