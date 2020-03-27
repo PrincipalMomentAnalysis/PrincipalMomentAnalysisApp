@@ -261,8 +261,6 @@ end
 function JobGraph()
 	scheduler = Scheduler()
 	# scheduler = Scheduler(threaded=false) # For DEBUG
-	sampleIDs = Dict{String,Tuple{JobID,JobID}}()
-	annotIDs  = Dict{String,Tuple{JobID,JobID}}()
 
 	# Data Nodes (i.e. parameters chosen in the GUI)
 	paramIDs = Dict{String,JobID}()
