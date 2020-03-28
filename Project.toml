@@ -17,7 +17,7 @@ PrincipalMomentAnalysis = "6a3ba550-3b7f-11e9-2734-d9178ad1e8db"
 
 [compat]
 Blink = "0.12.2"
-CSV = "0.5.26"
+CSV = "0.5.26, 0.6"
 Colors = "0.11.2, 0.12"
 DataFrames = "0.20.2"
 DataStructures = "0.17.10"
