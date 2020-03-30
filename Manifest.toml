@@ -280,9 +280,9 @@ version = "0.5.3"
 
 [[PrincipalMomentAnalysis]]
 deps = ["LinearAlgebra", "SparseArrays", "Statistics"]
-git-tree-sha1 = "acfd768579f4f899437a771dbbd781e0d1d45dcd"
+git-tree-sha1 = "04b57383481be3c315e5d2fb553b26bcd3a81754"
 uuid = "6a3ba550-3b7f-11e9-2734-d9178ad1e8db"
-version = "0.1.2"
+version = "0.2.0"
 
 [[Printf]]
 deps = ["Unicode"]

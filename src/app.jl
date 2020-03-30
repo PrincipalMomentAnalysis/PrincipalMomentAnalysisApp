@@ -105,7 +105,7 @@ function setupsimplices(st, input::Dict{String,Any})
 	distNN      = parse(Float64, input["distnearestneighbors"])
 	@assert method in (:SA,:Time,:NN,:NNSA)
 
-	G = nothing
+	local G
 	if method == :SA
 		G = groupsimplices(sampleData.sa[!,sampleAnnot])
 	elseif method == :Time

@@ -1,4 +1,4 @@
-function plotsimplices(V, G, colorBy, colorDict;
+function plotsimplices(V, sg, colorBy, colorDict;
 	                   drawPoints=true, drawLines=true, drawTriangles=true,
 	                   title="",
 	                   opacity=0.3, markerSize=5, lineWidth=2,
@@ -39,7 +39,7 @@ function plotsimplices(V, G, colorBy, colorDict;
 		z = Union{Nothing,Float64}[]
 		colorsRGB    = RGB{Float64}[]
 		colorsScalar = Float64[]
-		GK = G*G'
+		GK = sg.G*sg.G'
 		for ci in findall(GK.!=0)
 			r,c = Tuple(ci)
 			r>c || continue # just use lower triangular part
@@ -62,12 +62,11 @@ function plotsimplices(V, G, colorBy, colorDict;
 
 	if drawTriangles
 		triangleInds = Int[]
-		for c=1:size(G,1)
-			ind = findall(G[:,c])
+		for c=1:size(sg.G,2)
+			ind = findall(sg.G[:,c])
 			isempty(ind) && continue
 
 			length(ind)<3 && continue # no triangles
-			# length(ind)>3 && error("Tetrahedrons not yet supported") # tetrahedrons and above, TODO implement
 
 			# slow and ugly solution
 			for tri in subsets(ind,3)
