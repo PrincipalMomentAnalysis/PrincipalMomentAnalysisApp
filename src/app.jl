@@ -105,25 +105,29 @@ function setupsimplices(st, input::Dict{String,Any})
 	distNN      = parse(Float64, input["distnearestneighbors"])
 	@assert method in (:SA,:Time,:NN,:NNSA)
 
-	local G
+	local G, description
 	if method == :SA
 		G = groupsimplices(sampleData.sa[!,sampleAnnot])
+		description = "GroupBy=$sampleAnnot"
 	elseif method == :Time
 		eltype(sampleData.sa[!,timeAnnot])<:Number || @warn "Expected time annotation to contain numbers, got $(eltype(sampleData.sa[!,timeAnnot])). Fallback to default sorting."
 		G = timeseriessimplices(sampleData.sa[!,timeAnnot], groupby=sampleData.sa[!,sampleAnnot])
+		description = "Time=$timeAnnot, GroupBy=$sampleAnnot"
 	elseif method == :NN
 		G = neighborsimplices(sampleData.data; k=kNN, r=distNN, dim=50)
+		description = "Nearest Neighbors k=$kNN, r=$distNN"
 	elseif method == :NNSA
 		G = neighborsimplices(sampleData.data; k=kNN, r=distNN, dim=50, groupby=sampleData.sa[!,sampleAnnot])
+		description = "Nearest Neighbors k=$kNN, r=$distNN, GroupBy=$sampleAnnot"
 	end
-	G
+	G, description
 end
 
 
 function dimreduction(st, input::Dict{String,Any})
 	@assert length(input)==3
 	sampleData      = input["sampledata"]
-	sampleSimplices = input["samplesimplices"]
+	sampleSimplices = input["samplesimplices"][1]
 	method          = Symbol(input["method"])
 
 	X = sampleData.data::Matrix{Float64}
@@ -144,7 +148,7 @@ function makeplot(st, input::Dict{String,Any})
 	reduced            = input["reduced"]::ReducedSampleData
 	dimReductionMethod = Symbol(input["dimreductionmethod"])
 	sampleAnnot        = Symbol(input["sampleannot"])
-	sampleSimplices    = input["samplesimplices"]
+	sampleSimplices, sampleSimplexDescription = input["samplesimplices"]
 	xaxis              = parse(Int,input["xaxis"])
 	yaxis              = parse(Int,input["yaxis"])
 	zaxis              = parse(Int,input["zaxis"])
@@ -161,7 +165,7 @@ function makeplot(st, input::Dict{String,Any})
 	# shapeByMethod      = Symbol(input["shapeby"])
 	# shapeAnnot         = Symbol(input["shapeannot"])
 
-	title = dimReductionMethod
+	title = "$dimReductionMethod - $sampleSimplexDescription"
 
 	colorByMethod == :Auto && (colorAnnot=sampleAnnot)
 	colorBy = colorByMethod == :None ? repeat([""],size(reduced.sa,1)) : reduced.sa[!,colorAnnot]
