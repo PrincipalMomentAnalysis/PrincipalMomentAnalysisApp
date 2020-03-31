@@ -76,7 +76,7 @@ In the GUI, you can choose between four different methods for how to create the 
 
 * *Sample Annotation*: All samples sharing the same value of the chosen *sample annotation* will be connected to form a simplex. The total weight of each simplex is equal to the number of samples forming the simplex.
 * *Time Series*: First the samples are divided into groups by the chosen *sample annotation*. Then simplices are formed by connecting each sample to the previous and next sample according to the *time annotation*. (If there are ties, all samples at a timepoint will be connected to all samples at the previous/next timepoints.)
-* *Nearest Neighbors*: For each sample, a simplex is created by connecting to the chosen number of nearest neighbors. You can also chose to connect a sample to neighbours within a distance threshold (normalized such that a distance of 1 is the distance of the samples furthest away from each other). To reduce noise, distances between samples are computed after reducing the dimension to 50 by PCA.
+* *Nearest Neighbors*: For each sample, a simplex is created by connecting to the chosen number of nearest neighbors. You can also chose to connect a sample to neighbours within a distance threshold (normalized such that a distance of 0.5 is the distance between the origin and the sample furthest away from the origin). To reduce noise, distances between samples are computed after reducing the dimension to 50 by PCA.
 * *Nearest Neighbors within groups*: As for *Nearest Neighbors*, but samples are only connected if they share the same value of the chosen *sample annotation*.
 
 
