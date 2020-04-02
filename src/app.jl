@@ -410,8 +410,8 @@ function process_step(jg::JobGraph, fromGUI::Channel, toGUI::Channel, lastSchedu
 			status = statusstring(scheduler)
 			@info "Job status: $status"
 		catch e
-			@warn "[Processing] Error processing event."
-			showerror(stdout, e, catch_backtrace())
+			@warn "[Processing] Error processing event: $e"
+			#showerror(stdout, e, catch_backtrace())
 		end
 		setsamplestatus(jg, toGUI)
 	else

@@ -155,8 +155,8 @@ jobstatus(s::Scheduler, jobID::JobID) = haskey(s.jobs, jobID) ? s.jobs[jobID].st
 # --- internal functions ---
 
 function _setstatus!(s::Scheduler, jobID::JobID, job::Job, status::Symbol, statusChangedTime::UInt64=time_ns())
-	if job.status == :running && status==:notstarted
-		@warn "Detaching running job $(job.name)"
+	if status==:notstarted && job.status in (:running,:spawned)
+		job.status==:running && @warn "Detaching running job $(job.name)"
 		s.detachedJobs[DetachedJob(jobID,job.runAt)] = job.statusChangedTime
 	end
 	wasActive = job.status in (:waiting,:spawned,:running)
