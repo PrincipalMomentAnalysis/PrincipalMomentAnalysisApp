@@ -402,7 +402,7 @@ function process_step(jg::JobGraph, fromGUI::Channel, toGUI::Channel, lastSchedu
 		end
 		setsamplestatus(jg, toGUI)
 	else
-		yield()
+		sleep(0.05)#yield()
 	end
 	true
 end
@@ -477,7 +477,7 @@ function pmaapp(; return_job_graph=false)
 				processingThreadRunning = false
 			end
 		end
-		yield() # Allow GUI to run
+		sleep(0.05)#yield() # Allow GUI to run
 	end
 
 	@info "[GUI] Waiting for scheduler thread to finish."

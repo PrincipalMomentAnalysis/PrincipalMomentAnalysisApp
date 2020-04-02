@@ -6,6 +6,7 @@ using PrincipalMomentAnalysis
 using LinearAlgebra
 using DataFrames
 using CSV
+using Statistics
 
 using Blink
 using JSExpr
