@@ -308,7 +308,9 @@ function _finish!(s::Scheduler, jobID::JobID, runAt::Timestamp, result::Any, sta
 		@assert job.status in (:running,:done)
 		job.result = result
 		_setstatus!(s, jobID, job, :done, statusChangedTime)
-		if !(result isa Exception)
+		if result isa Exception
+			setdirty!(s, jobID)
+		else
 			for callback in job.callbacks
 				callback(job.result)
 			end
