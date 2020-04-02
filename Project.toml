@@ -1,7 +1,7 @@
 name = "PrincipalMomentAnalysisApp"
 uuid = "e56c3062-542c-497d-ab50-e8a2f2a25ce2"
 authors = ["Rasmus Henningsson", "Lund University"]
-version = "0.2.1"
+version = "0.2.2"
 
 [deps]
 Blink = "ad839575-38b3-5650-b840-f874b8c74a25"
