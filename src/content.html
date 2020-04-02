@@ -26,6 +26,8 @@
     function init() {
         updateSampleSimplexMethod("SA");
         setValue("loadrowsassamples",    document.getElementById("loadRowsAsSamples").checked.toString());
+        setValue("logtransform",         document.getElementById("logTransform").checked.toString());
+        setValue("logtransformoffset",   document.getElementById("logTransformOffset").value);
         setValue("normalizemethod",      getChecked("normalizeMethodGroup"));
         setValue("dimreductionmethod",   getChecked("dimReductionMethodGroup"));
         setValue("knearestneighbors",    document.getElementById("kNearestNeighbors").value);
@@ -144,6 +146,12 @@
     </div>
     <div class="group">
         <p class="subtitle">Normalization</p>
+        <p id="log2Group">
+            Enable log₂-transform
+            <input type="checkbox" id="logTransform" onclick='document.getElementById("logTransformOffset").disabled=!this.checked; setValue("logtransform", this.checked.toString())'>
+            with offset
+            <input type="number" id="logTransformOffset" min="0" max="100" value="1" step="0.01" onchange='setValue("logtransformoffset",this.value)' disabled>
+        </p>
         <p id="normalizeMethodGroup">
             <input type="radio" name="normalizemethodgroup" value="None"         onclick='setValue("normalizemethod", "None")'                >None
             <input type="radio" name="normalizemethodgroup" value="Mean=0"       onclick='setValue("normalizemethod", "Mean=0")'       checked>Mean=0

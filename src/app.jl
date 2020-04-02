@@ -57,10 +57,12 @@ end
 
 
 function normalizesample(st, input::Dict{String,Any})
-	@assert length(input)==3
+	@assert length(input)==5
 	df = input["dataframe"]
-	method = input["method"]
-	lastSampleAnnot = input["lastsampleannot"]
+	method             = input["method"]
+	lastSampleAnnot    = input["lastsampleannot"]
+	logTransform       = parse(Bool,input["logtransform"])
+	logTransformOffset = parse(Float64, input["logtransformoffset"])
 	@assert method in ("None", "Mean=0", "Mean=0,Std=1")
 
 	nbrSampleAnnots = findfirst(x->string(x)==lastSampleAnnot, names(df))
@@ -71,6 +73,11 @@ function normalizesample(st, input::Dict{String,Any})
 	originalData = convert(Matrix, df[!,nbrSampleAnnots+1:end])'
 	@assert eltype(originalData) <: Union{Number,Missing}
 
+	if logTransform
+		@assert all(x->x>-logTransformOffset, skipmissing(originalData)) "Data contains negative values, cannot log-transform."
+		originalData .= log2.(originalData.+logTransformOffset)
+	end
+
 	data = zeros(size(originalData))
 	if any(ismissing,originalData)
 		# Replace missing values with mean over samples with nonmissing data
@@ -78,11 +85,13 @@ function normalizesample(st, input::Dict{String,Any})
 		for i=1:size(data,1)
 			m = ismissing.(originalData[i,:])
 			data[i,.!m] .= originalData[i,.!m]
-			data[i,m] .= mean(originalData[i,.!m])
+			reconstructed = mean(originalData[i,.!m])
+			data[i,m] .= isnan(reconstructed) ? 0.0 : reconstructed
 		end
 	else
 		data .= originalData # just copy
 	end
+	@assert all(!isnan, data) "Input data cannot contain NaNs. Use empty cells for missing values."
 
 
 	X = data
@@ -277,6 +286,8 @@ function JobGraph()
 	add_dependency!(scheduler, loadSampleID=>normalizeID, "dataframe")
 	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"lastsampleannot")=>normalizeID, "lastsampleannot")
 	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"normalizemethod")=>normalizeID, "method")
+	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"logtransform")=>normalizeID, "logtransform")
+	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"logtransformoffset")=>normalizeID, "logtransformoffset")
 
 	setupSimplicesID = createjob!(setupsimplices, scheduler, "setupsimplices")
 	add_dependency!(scheduler, normalizeID=>setupSimplicesID, "sampledata")
@@ -374,6 +385,8 @@ function process_step(jg::JobGraph, fromGUI::Channel, toGUI::Channel, lastSchedu
 				end
 			elseif msgName == :loadsample
 				schedule!(x->showsampleannotnames(x,toGUI), scheduler, jg.loadSampleID)
+			elseif msgName == :normalize
+				schedule!(scheduler, jg.normalizeID)
 			elseif msgName == :dimreduction
 				schedule!(scheduler, jg.dimreductionID)
 			elseif msgName == :showplot
