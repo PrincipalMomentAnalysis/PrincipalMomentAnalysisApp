@@ -278,64 +278,64 @@ function JobGraph()
 	# Data Nodes (i.e. parameters chosen in the GUI)
 	paramIDs = Dict{String,JobID}()
 
-	loadSampleID = createjob!(loadsample, scheduler, "loadsample")
-	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"samplefilepath")=>loadSampleID, "filepath")
-	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"loadrowsassamples")=>loadSampleID, "rowsassamples")
+	loadSampleID = createjob!(loadsample, scheduler,
+	                          getparamjobid(scheduler,paramIDs,"samplefilepath")=>"filepath",
+	                          getparamjobid(scheduler,paramIDs,"loadrowsassamples")=>"rowsassamples")
 
-	normalizeID = createjob!(normalizesample, scheduler, "normalizesample")
-	add_dependency!(scheduler, loadSampleID=>normalizeID, "dataframe")
-	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"lastsampleannot")=>normalizeID, "lastsampleannot")
-	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"normalizemethod")=>normalizeID, "method")
-	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"logtransform")=>normalizeID, "logtransform")
-	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"logtransformoffset")=>normalizeID, "logtransformoffset")
+	normalizeID = createjob!(normalizesample, scheduler,
+	                         loadSampleID=>"dataframe",
+	                         getparamjobid(scheduler,paramIDs,"lastsampleannot")=>"lastsampleannot",
+	                         getparamjobid(scheduler,paramIDs,"normalizemethod")=>"method",
+	                         getparamjobid(scheduler,paramIDs,"logtransform")=>"logtransform",
+	                         getparamjobid(scheduler,paramIDs,"logtransformoffset")=>"logtransformoffset")
 
-	setupSimplicesID = createjob!(setupsimplices, scheduler, "setupsimplices")
-	add_dependency!(scheduler, normalizeID=>setupSimplicesID, "sampledata")
-	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"samplesimplexmethod")=>setupSimplicesID, "method")
-	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"sampleannot")=>setupSimplicesID, "sampleannot")
-	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"timeannot")=>setupSimplicesID, "timeannot")
-	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"knearestneighbors")=>setupSimplicesID, "knearestneighbors")
-	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"distnearestneighbors")=>setupSimplicesID, "distnearestneighbors")
+	setupSimplicesID = createjob!(setupsimplices, scheduler,
+	                              normalizeID=>"sampledata",
+	                              getparamjobid(scheduler,paramIDs,"samplesimplexmethod")=>"method",
+	                              getparamjobid(scheduler,paramIDs,"sampleannot")=>"sampleannot",
+	                              getparamjobid(scheduler,paramIDs,"timeannot")=>"timeannot",
+	                              getparamjobid(scheduler,paramIDs,"knearestneighbors")=>"knearestneighbors",
+	                              getparamjobid(scheduler,paramIDs,"distnearestneighbors")=>"distnearestneighbors")
 
-	dimreductionID = createjob!(dimreduction, scheduler, "dimreduction")
-	add_dependency!(scheduler, normalizeID=>dimreductionID, "sampledata")
-	add_dependency!(scheduler, setupSimplicesID=>dimreductionID, "samplesimplices")
-	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"dimreductionmethod")=>dimreductionID, "method")
+	dimreductionID = createjob!(dimreduction, scheduler,
+	                            normalizeID=>"sampledata",
+	                            setupSimplicesID=>"samplesimplices",
+	                            getparamjobid(scheduler,paramIDs,"dimreductionmethod")=>"method")
 
-	makeplotID = createjob!(makeplot, scheduler, "makeplot")
-	add_dependency!(scheduler, dimreductionID=>makeplotID, "reduced")
-	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"dimreductionmethod")=>makeplotID, "dimreductionmethod")
-	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"sampleannot")=>makeplotID, "sampleannot")
-	add_dependency!(scheduler, setupSimplicesID=>makeplotID, "samplesimplices")
-	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"xaxis")=>makeplotID, "xaxis")
-	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"yaxis")=>makeplotID, "yaxis")
-	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"zaxis")=>makeplotID, "zaxis")
-	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"plotwidth")=>makeplotID, "plotwidth")
-	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"plotheight")=>makeplotID, "plotheight")
-	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"showpoints")=>makeplotID, "showpoints")
-	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"showlines")=>makeplotID, "showlines")
-	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"showtriangles")=>makeplotID, "showtriangles")
-	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"markersize")=>makeplotID, "markersize")
-	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"linewidth")=>makeplotID, "linewidth")
-	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"triangleopacity")=>makeplotID, "triangleopacity")
-	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"colorby")=>makeplotID, "colorby")
-	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"colorannot")=>makeplotID, "colorannot")
-	# add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"shapeby")=>makeplotID, "shapeby")
-	# add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"shapeannot")=>makeplotID, "shapeannot")
+	makeplotID = createjob!(makeplot, scheduler,
+	                        dimreductionID=>"reduced",
+	                        getparamjobid(scheduler,paramIDs,"dimreductionmethod")=>"dimreductionmethod",
+	                        getparamjobid(scheduler,paramIDs,"sampleannot")=>"sampleannot",
+	                        setupSimplicesID=>"samplesimplices",
+	                        getparamjobid(scheduler,paramIDs,"xaxis")=>"xaxis",
+	                        getparamjobid(scheduler,paramIDs,"yaxis")=>"yaxis",
+	                        getparamjobid(scheduler,paramIDs,"zaxis")=>"zaxis",
+	                        getparamjobid(scheduler,paramIDs,"plotwidth")=>"plotwidth",
+	                        getparamjobid(scheduler,paramIDs,"plotheight")=>"plotheight",
+	                        getparamjobid(scheduler,paramIDs,"showpoints")=>"showpoints",
+	                        getparamjobid(scheduler,paramIDs,"showlines")=>"showlines",
+	                        getparamjobid(scheduler,paramIDs,"showtriangles")=>"showtriangles",
+	                        getparamjobid(scheduler,paramIDs,"markersize")=>"markersize",
+	                        getparamjobid(scheduler,paramIDs,"linewidth")=>"linewidth",
+	                        getparamjobid(scheduler,paramIDs,"triangleopacity")=>"triangleopacity",
+	                        getparamjobid(scheduler,paramIDs,"colorby")=>"colorby",
+	                        getparamjobid(scheduler,paramIDs,"colorannot")=>"colorannot")
+	                        # getparamjobid(scheduler,paramIDs,"shapeby")=>"shapeby",
+	                        # getparamjobid(scheduler,paramIDs,"shapeannot")=>"shapeannot")
 
 
-	exportSingleID = createjob!(exportsingle, scheduler, "exportsingle")
-	add_dependency!(scheduler, dimreductionID=>exportSingleID, "reduced")
-	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"exportmode")=>exportSingleID, "mode")
-	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"exportsinglepath")=>exportSingleID, "filepath")
-	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"exportsingledim")=>exportSingleID, "dim")
-	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"exportsinglesort")=>exportSingleID, "sort")
+	exportSingleID = createjob!(exportsingle, scheduler,
+	                            dimreductionID=>"reduced",
+	                            getparamjobid(scheduler,paramIDs,"exportmode")=>"mode",
+	                            getparamjobid(scheduler,paramIDs,"exportsinglepath")=>"filepath",
+	                            getparamjobid(scheduler,paramIDs,"exportsingledim")=>"dim",
+	                            getparamjobid(scheduler,paramIDs,"exportsinglesort")=>"sort")
 
-	exportMultipleID = createjob!(exportmultiple, scheduler, "exportmultiple")
-	add_dependency!(scheduler, dimreductionID=>exportMultipleID, "reduced")
-	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"exportmode")=>exportMultipleID, "mode")
-	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"exportmultiplepath")=>exportMultipleID, "filepath")
-	add_dependency!(scheduler, getparamjobid(scheduler,paramIDs,"exportmultipledim")=>exportMultipleID, "dim")
+	exportMultipleID = createjob!(exportmultiple, scheduler,
+	                              dimreductionID=>"reduced",
+	                              getparamjobid(scheduler,paramIDs,"exportmode")=>"mode",
+	                              getparamjobid(scheduler,paramIDs,"exportmultiplepath")=>"filepath",
+	                              getparamjobid(scheduler,paramIDs,"exportmultipledim")=>"dim")
 
 	JobGraph(scheduler,
 	         Ref(""),
@@ -350,7 +350,7 @@ function JobGraph()
 	         exportMultipleID)
 end
 
-getparamjobid(s::Scheduler, paramIDs::Dict{String,JobID}, name::String, create::Bool=true) = create ? get!(paramIDs,name,createjob!(s, :__INVALID__, name)) : paramIDs[name]
+getparamjobid(s::Scheduler, paramIDs::Dict{String,JobID}, name::String, create::Bool=true) = create ? get!(paramIDs,name,createjob!(s, :__INVALID__, name=name)) : paramIDs[name]
 getparamjobid(jg::JobGraph, name::String, args...) = getparamjobid(jg.scheduler, jg.paramIDs,name,args...)
 setparam(jg::JobGraph, name::String, value) = setresult!(jg.scheduler, jg.paramIDs[name], value)
 
