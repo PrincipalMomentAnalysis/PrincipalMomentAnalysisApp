@@ -187,10 +187,10 @@ function _deletejob!(s::Scheduler, jobID::JobID)
 	# remove dependencies
 	job = s.jobs[jobID]
 	for (name,fromID) in job.edges
-		remove_edge!(s, fromID=>jobID, name)
+		remove_edge!(s, fromID=>(jobID,name))
 	end
 	for (toID,name) in job.edgesReverse
-		remove_edge!(s, jobID=>toID, name)
+		remove_edge!(s, jobID=>(toID,name))
 	end
 	_setstatus!(s, jobID, job, :notstarted) # ensures removal from active jobs and detaching if needed
 	delete!(s.jobs, jobID)
