@@ -324,7 +324,7 @@ function _finish!(s::Scheduler, jobID::JobID, runAt::Timestamp, result::Any, sta
 		pop!(s.detachedJobs, DetachedJob(jobID,runAt))
 	end
 
-	result isa Exception && (@warn result; throw(result))
+	result isa Exception && throw(result)
 
 	nothing
 end
