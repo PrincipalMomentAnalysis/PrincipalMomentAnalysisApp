@@ -38,7 +38,7 @@ end
 	put!(app.fromGUI, :loadsample=>[])
 	@test runall(app)
 	dfSample = app.jg.scheduler.jobs[app.jg.loadSampleID].result
-	@test names(dfSample) == vcat([:SampleId, :Group, :Time], varIds)
+	@test propertynames(dfSample) == vcat([:SampleId, :Group, :Time], varIds)
 	@test dfSample.SampleId == sampleIds
 	@test dfSample.Group == groupAnnot
 	@test dfSample.Time == timeAnnot
@@ -127,7 +127,7 @@ end
 				perm = sortperm(PMA)
 			end
 
-			@test names(result)==[idCol,colName]
+			@test propertynames(result)==[idCol,colName]
 			@test result[!,idCol] == ids[perm]
 			@test resultPMA ≈ PMA[perm]
 		end
@@ -145,11 +145,11 @@ end
 			colNames = Symbol.(:PMA,1:dim)
 
 			if mode=="Samples"
-				@test names(result)==vcat(:SampleId, colNames)
+				@test propertynames(result)==vcat(:SampleId, colNames)
 				@test result.SampleId == sampleIds
 				@test convert(Matrix,result[:,colNames]) ≈ reduced.F.V[:,1:dim]
 			else
-				@test names(result)==vcat(:VariableId, colNames)
+				@test propertynames(result)==vcat(:VariableId, colNames)
 				@test result.VariableId == string.(varIds)
 				@test convert(Matrix,result[:,colNames]) ≈ reduced.F.U[:,1:dim]
 			end

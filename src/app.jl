@@ -27,7 +27,7 @@ end
 
 
 guesslastsampleannot(df::DataFrame) =
-	something(findlast(col->!(eltype(col)<:Union{Real,Missing}), eachcol(df)), 1) # a reasonable guess for which column to use as the last sample annotation
+	something(findlast(j->!(eltype(df[!,j])<:Union{Real,Missing}), 1:size(df,2)), 1) # a reasonable guess for which column to use as the last sample annotation
 
 getdelim(filepath::String) = lowercase(splitext(filepath)[2])==".csv" ? ',' : '\t'
 
@@ -69,7 +69,7 @@ function normalizesample(st, input::Dict{String,Any})
 	@assert nbrSampleAnnots != nothing "Couldn't find sample annotation: \"$lastSampleAnnot\""
 
 	sa = df[:, 1:nbrSampleAnnots]
-	va = DataFrame(VariableId=names(df)[nbrSampleAnnots+1:end])
+	va = DataFrame(VariableId=propertynames(df)[nbrSampleAnnots+1:end])
 	originalData = convert(Matrix, df[!,nbrSampleAnnots+1:end])'
 	@assert eltype(originalData) <: Union{Number,Missing}
 
