@@ -9,7 +9,7 @@ export
 	deletejob!,
 	add_dependency!,
 	remove_dependency!,
-	replace_dependency!,
+	set_dependency!,
 	setfunction!,
 	setresult!,
 	schedule!,
@@ -88,9 +88,9 @@ end
 createjob!(f::Function, s::Scheduler, args::Pair{JobID,String}...; name=string(f), kwargs...) = createjob!(s, f, args...; name=name, kwargs...)
 deletejob!(s::Scheduler, jobID::JobID) = addaction!(s->_deletejob!(s,jobID), s)
 
-add_dependency!(   s::Scheduler, dep::Pair{JobID,Tuple{JobID,String}})  = addaction!(s->    add_edge!(s,dep), s)
-remove_dependency!(s::Scheduler, dep::Pair{JobID,Tuple{JobID,String}})  = addaction!(s-> remove_edge!(s,dep), s)
-replace_dependency!(s::Scheduler, dep::Pair{JobID,Tuple{JobID,String}}) = addaction!(s->replace_edge!(s,dep), s)
+add_dependency!(   s::Scheduler, dep::Pair{JobID,Tuple{JobID,String}}) = addaction!(s->   add_edge!(s,dep), s)
+remove_dependency!(s::Scheduler, dep::Pair{JobID,Tuple{JobID,String}}) = addaction!(s->remove_edge!(s,dep), s)
+set_dependency!(s::Scheduler, dep::Pair{JobID,Tuple{JobID,String}})    = addaction!(s->   set_edge!(s,dep), s)
 
 setfunction!(f::Function, s::Scheduler, jobID::JobID) = addaction!(s->_setfunction!(s,jobID,f), s)
 setresult!(s::Scheduler, jobID::JobID, result::Any)   = addaction!(s->_setresult!(s,jobID,result), s)
@@ -342,7 +342,7 @@ function add_edge!(s::Scheduler, dep::Pair{JobID,Tuple{JobID,String}})
 	@assert haskey(s.jobs, toID)   "Trying to add edge to nonexisting job with id $(toID)"
 	@assert haskey(s.jobs, fromID) "Trying to add edge from nonexisting job with id $(fromID)"
 	from,to = s.jobs[fromID], s.jobs[toID]
-	@assert !haskey(to.edges, toName) # we don't allow adding edges that already exist
+	@assert !haskey(to.edges, toName) "Trying to add edge \"$toName\" that already exists in job with id ($toID)"
 	to.edges[toName] = fromID
 	push!(from.edgesReverse, (toID,toName))
 	setdirty!(s, toID)
@@ -354,25 +354,24 @@ function remove_edge!(s::Scheduler, dep::Pair{JobID,Tuple{JobID,String}})
 	@assert haskey(s.jobs, fromID) "Trying to remove edge from nonexisting job with id $(fromID)"
 	from,to = s.jobs[fromID], s.jobs[toID]
 	# we don't allow removing edges that doesn't exist
-	@assert haskey(to.edges, toName)
+	@assert haskey(to.edges, toName) "Trying to remove edge \"$toName\" that doesn't exists in job with id ($toID)"
 	@assert to.edges[toName]==fromID
 	delete!(to.edges, toName)
 	delete!(from.edgesReverse, (toID,toName))
 	setdirty!(s, toID)
 	nothing
 end
-function replace_edge!(s::Scheduler, dep::Pair{JobID,Tuple{JobID,String}})
+function set_edge!(s::Scheduler, dep::Pair{JobID,Tuple{JobID,String}})
 	fromID,(toID,toName) = dep
 	@assert haskey(s.jobs, toID)   "Trying to replace edge to nonexisting job with id $(toID)"
 	@assert haskey(s.jobs, fromID) "Trying to replace (remove) edge from nonexisting job with id $(fromID)"
-	#edges::Dict{String,JobID} # name=>fromID
 	from,to = s.jobs[fromID], s.jobs[toID]
-	prevFromID = to.edges[toName]
-	if fromID!=prevFromID
-		@assert haskey(s.jobs, prevFromID) "Trying to replace (add) edge from nonexisting job with id $(fromID)"
+	if haskey(to.edges, toName)
+		prevFromID = to.edges[toName]
+		prevFromID == fromID && return
 		remove_edge!(s, prevFromID=>(toID,toName))
-		add_edge!(s, dep)
 	end
+	add_edge!(s, dep)
 	nothing
 end
 
