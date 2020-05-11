@@ -3,7 +3,7 @@
 @testset "exit" begin
 	app = MiniApp()
 	put!(app.fromGUI, :exit=>[])
-	process_thread(app.jg, app.fromGUI, app.toGUI)
+	process_thread(app.jg, app.fromGUI, app.toGUI; verbosityLevel=2)
 	didExit = false
 	while true
 		@test isready(app.toGUI)

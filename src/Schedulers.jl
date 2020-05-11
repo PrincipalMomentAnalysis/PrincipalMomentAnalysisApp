@@ -65,10 +65,11 @@ struct Scheduler
 	activeJobs::Set{JobID}
 	detachedJobs::Dict{DetachedJob, UInt64} # -> time_ns() when job started running
 	hasSpawned::Ref{Bool}
+	verbose::Bool
 end
-function Scheduler(;threaded=Threads.nthreads()>1)
+function Scheduler(;threaded=Threads.nthreads()>1, verbose=false)
 	threaded && Threads.nthreads()==1 && @warn "Trying to run threaded Scheduler, but threading is not enabled, please set the environment variable JULIA_NUM_THREADS to the desired number of threads."
-	Scheduler(threaded, Ref(0), Threads.Atomic{JobID}(1), Dict{JobID,Job}(), Channel{Function}(Inf), Channel{Function}(Inf), [], Set{JobID}(), Dict{DetachedJob,UInt64}(), Ref(false))
+	Scheduler(threaded, Ref(0), Threads.Atomic{JobID}(1), Dict{JobID,Job}(), Channel{Function}(Inf), Channel{Function}(Inf), [], Set{JobID}(), Dict{DetachedJob,UInt64}(), Ref(false), verbose)
 end
 
 
@@ -248,7 +249,7 @@ function _schedule!(s::Scheduler, jobID::JobID, callback::Callback, scheduledAt:
 			end
 		end
 		job.waitingFor = waitingFor
-		@info "$(job.name) waiting for $(length(job.waitingFor)) jobs to finish."
+		s.verbose && @info "$(job.name) waiting for $(length(job.waitingFor)) jobs to finish."
 	end
 	@assert job.runAt == changedAt
 	callback != nothing && push!(job.callbacks, callback)
@@ -280,7 +281,7 @@ function _spawn!(s::Scheduler, jobID::JobID, scheduledAt::Timestamp)
 		job.result != nothing && _finish!(s, jobID, job.runAt, job.result, time_ns())
 	elseif job.status == :waiting
 		@assert isempty(job.waitingFor)
-		@info "Spawning $(job.name) ($jobID@$changedAt)"
+		s.verbose && @info "Spawning $(job.name) ($jobID@$changedAt)"
 		s.hasSpawned[] = true
 		inputs = getinput(s,jobID)
 		_setstatus!(s, jobID, job, :spawned)
@@ -391,7 +392,7 @@ function runjob!(s::Scheduler, jobID::JobID, jobName::String, changedAt::Threads
 	result = nothing
 	if !iscanceled(jobStatus) # ensure the job was not changed after it was scheduled
 		try
-			@info "Running $jobName ($jobID@$runAt) with $(length(input)) parameter(s) in thread $(Threads.threadid())."
+			s.verbose && @info "Running $jobName ($jobID@$runAt) with $(length(input)) parameter(s) in thread $(Threads.threadid())."
 			jobStartTime = time_ns()
 			addaction!(s->_setstatustorunning!(s,jobID,runAt,jobStartTime), s)
 
@@ -404,7 +405,7 @@ function runjob!(s::Scheduler, jobID::JobID, jobName::String, changedAt::Threads
 			dur = round((time_ns()-jobStartTime)/1e9,digits=1)
 			isCanceled = iscanceled(jobStatus)
 			detachedStr = isCanceled ? " (detached job)" : ""
-			@info "Finished running$detachedStr $jobName[$(dur)s] ($jobID@$runAt) in thread $(Threads.threadid())."
+			s.verbose && @info "Finished running$detachedStr $jobName[$(dur)s] ($jobID@$runAt) in thread $(Threads.threadid())."
 			isCanceled || @assert result!=nothing "Job $jobName returned nothing"
 		catch err
 			@warn "Job $jobName ($jobID@$runAt) failed"

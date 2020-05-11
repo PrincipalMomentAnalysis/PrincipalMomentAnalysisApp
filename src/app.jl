@@ -271,9 +271,9 @@ function setsamplestatus(jg::JobGraph, toGUI::Channel)
 end
 
 
-function JobGraph()
-	scheduler = Scheduler()
-	# scheduler = Scheduler(threaded=false) # For DEBUG
+function JobGraph(;verbose=false)
+	scheduler = Scheduler(verbose=verbose)
+	# scheduler = Scheduler(threaded=false, verbose=verbose) # For DEBUG
 
 	# Data Nodes (i.e. parameters chosen in the GUI)
 	paramIDs = Dict{String,JobID}()
@@ -358,22 +358,22 @@ setparam(jg::JobGraph, name::String, value) = setresult!(jg.scheduler, jg.paramI
 
 
 
-function process_step(jg::JobGraph, fromGUI::Channel, toGUI::Channel, lastSchedulerTime::Ref{UInt64})
+function process_step(jg::JobGraph, fromGUI::Channel, toGUI::Channel, lastSchedulerTime::Ref{UInt64}; verbosityLevel)
 	scheduler = jg.scheduler
 
-	# @info "[Processing] tick"
+	verbosityLevel>=3 && @info "[Processing] tick"
 	timeNow = time_ns()
 	if isready(fromGUI)
 		try
 			msg = take!(fromGUI)
 			msgName = msg.first
 			msgArgs = msg.second
-			@info "[Processing] Got message: $msgName $msgArgs"
+			verbosityLevel>=2 && @info "[Processing] Got message: $msgName $msgArgs"
 
 			if msgName == :exit
 				return false
 			elseif msgName == :cancel
-				@info "[Processing] Cancelling all future events."
+				verbosityLevel>=2 && @info "[Processing] Cancelling all future events."
 				cancelall!(scheduler)
 			elseif msgName == :setvalue
 				varName = msgArgs[1]
@@ -408,7 +408,7 @@ function process_step(jg::JobGraph, fromGUI::Channel, toGUI::Channel, lastSchedu
 		try
 			step!(scheduler)
 			status = statusstring(scheduler)
-			@info "Job status: $status"
+			verbosityLevel>=2 && @info "Job status: $status"
 		catch e
 			@warn "[Processing] Error processing event: $e"
 			#showerror(stdout, e, catch_backtrace())
@@ -420,16 +420,16 @@ function process_step(jg::JobGraph, fromGUI::Channel, toGUI::Channel, lastSchedu
 	true
 end
 
-function process_thread(jg::JobGraph, fromGUI::Channel, toGUI::Channel)
+function process_thread(jg::JobGraph, fromGUI::Channel, toGUI::Channel; verbosityLevel)
 	lastSchedulerTime = Ref{UInt64}(0)
 	try
-		while process_step(jg, fromGUI, toGUI, lastSchedulerTime)
+		while process_step(jg, fromGUI, toGUI, lastSchedulerTime; verbosityLevel=verbosityLevel)
 		end
 	catch e
 		@warn "[Processing] Fatal error."
 		showerror(stdout, e, catch_backtrace())
 	end
-	@info "[Processing] Exiting thread."
+	verbosityLevel>=2 && @info "[Processing] Exiting thread."
 	put!(toGUI, :exited=>nothing)
 end
 
@@ -440,13 +440,13 @@ end
 
 Start the Principal Moment Analysis App.
 """
-function pmaapp(; return_job_graph=false)
+function pmaapp(; verbosityLevel=1, return_job_graph=false)
 	# This is the GUI thread
 
-	jg = JobGraph()
+	jg = JobGraph(verbose=verbosityLevel>=2)
 
-	@info "[PMAGUI] Using $(Threads.nthreads()) of $(Sys.CPU_THREADS) available threads."
-	Threads.nthreads() == 1 && @warn "[PMAGUI] Threading not enabled, please set the environment variable JULIA_NUM_THREADS to the desired number of threads."
+	verbosityLevel>=1 && @info "[PMAGUI] Using $(Threads.nthreads()) of $(Sys.CPU_THREADS) available threads."
+	Threads.nthreads() == 1 && verbosityLevel>=1 && @warn "[PMAGUI] Threading not enabled, please set the environment variable JULIA_NUM_THREADS to the desired number of threads."
 
 	# init
 	fromGUI = Channel{Pair{Symbol,Vector}}(Inf)
@@ -454,7 +454,7 @@ function pmaapp(; return_job_graph=false)
 
 	# start processing thread
 	processingThreadRunning = true
-	Threads.@spawn process_thread(jg, fromGUI, toGUI)
+	Threads.@spawn process_thread(jg, fromGUI, toGUI; verbosityLevel=verbosityLevel)
 
 	# setup gui
 	w = Window(Dict(:width=>512,:height=>768))
@@ -463,7 +463,7 @@ function pmaapp(; return_job_graph=false)
 	handle(w, "msg") do args
 		msgName = Symbol(args[1])
 		msgArgs = args[2:end]
-		@info "[GUI] sending message: $msgName $(join(msgArgs,", "))"
+		verbosityLevel>=2 && @info "[GUI] sending message: $msgName $(join(msgArgs,", "))"
 		processingThreadRunning && put!(fromGUI, msgName=>msgArgs)
 	end
 
@@ -472,13 +472,13 @@ function pmaapp(; return_job_graph=false)
 	js(w, js"init()")
 
 	while isopen(w.content.sock) # is there a better way to check if the window is still open?
-		# @info "[GUI] tick"
+		verbosityLevel>=3 && @info "[GUI] tick"
 
 		if isready(toGUI)
 			msg = take!(toGUI)
 			msgName = msg.first
 			msgArgs = msg.second
-			@info "[GUI] got message: $msgName"
+			verbosityLevel>=2 && @info "[GUI] got message: $msgName"
 
 			if msgName == :samplestatus
 				js(w, js"""setSampleStatus($msgArgs)""")
@@ -493,18 +493,18 @@ function pmaapp(; return_job_graph=false)
 		sleep(0.05)#yield() # Allow GUI to run
 	end
 
-	@info "[GUI] Waiting for scheduler thread to finish."
+	verbosityLevel>=2 && @info "[GUI] Waiting for scheduler thread to finish."
 	processingThreadRunning && put!(fromGUI, :exit=>[])
 	# wait until all threads have exited
 	while processingThreadRunning
 		msg = take!(toGUI)
 		msgName = msg.first
 		msgArgs = msg.second
-		@info "[GUI] got message: $msgName"
+		verbosityLevel>=2 && @info "[GUI] got message: $msgName"
 		msgName == :exited && (processingThreadRunning = false)
 		sleep(0.05)
 	end
-	@info "[GUI] Scheduler thread finished."
+	verbosityLevel>=2 && @info "[GUI] Scheduler thread finished."
 
 	return_job_graph ? jg : nothing
 end
