@@ -351,8 +351,14 @@ function JobGraph(;verbose=false)
 end
 
 getparamjobid(s::Scheduler, paramIDs::Dict{String,JobID}, name::String, create::Bool=true) = create ? get!(paramIDs,name,createjob!(s, :__INVALID__, name=name)) : paramIDs[name]
-getparamjobid(jg::JobGraph, name::String, args...) = getparamjobid(jg.scheduler, jg.paramIDs,name,args...)
-setparam(jg::JobGraph, name::String, value) = setresult!(jg.scheduler, jg.paramIDs[name], value)
+getparamjobid(jg::JobGraph, name::String, args...) = getparamjobid(jg.scheduler, jg.paramIDs, name, args...)
+function setparam(jg::JobGraph, name::String, value)
+	if haskey(jg.paramIDs, name)
+		setresult!(jg.scheduler, getparamjobid(jg,name), value)
+	else
+		@warn "Unknown variable name: $name"
+	end
+end
 
 
 
@@ -376,13 +382,7 @@ function process_step(jg::JobGraph, fromGUI::Channel, toGUI::Channel, lastSchedu
 				verbosityLevel>=2 && @info "[Processing] Cancelling all future events."
 				cancelall!(scheduler)
 			elseif msgName == :setvalue
-				varName = msgArgs[1]
-				value = msgArgs[2]
-				if haskey(jg.paramIDs, varName)
-					setresult!(scheduler, jg.paramIDs[varName], value)
-				else
-					@warn "Unknown variable name: $varName"
-				end
+				setparam(jg, msgArgs[1], msgArgs[2])
 			elseif msgName == :loadsample
 				schedule!(x->showsampleannotnames(x,toGUI), scheduler, jg.loadSampleID)
 			elseif msgName == :normalize
