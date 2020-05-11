@@ -9,6 +9,7 @@ export
 	deletejob!,
 	add_dependency!,
 	remove_dependency!,
+	replace_dependency!,
 	setfunction!,
 	setresult!,
 	schedule!,
@@ -87,8 +88,9 @@ end
 createjob!(f::Function, s::Scheduler, args::Pair{JobID,String}...; name=string(f), kwargs...) = createjob!(s, f, args...; name=name, kwargs...)
 deletejob!(s::Scheduler, jobID::JobID) = addaction!(s->_deletejob!(s,jobID), s)
 
-add_dependency!(   s::Scheduler, dep::Pair{JobID,Tuple{JobID,String}}) = addaction!(s->   add_edge!(s,dep), s)
-remove_dependency!(s::Scheduler, dep::Pair{JobID,Tuple{JobID,String}}) = addaction!(s->remove_edge!(s,dep), s)
+add_dependency!(   s::Scheduler, dep::Pair{JobID,Tuple{JobID,String}})  = addaction!(s->    add_edge!(s,dep), s)
+remove_dependency!(s::Scheduler, dep::Pair{JobID,Tuple{JobID,String}})  = addaction!(s-> remove_edge!(s,dep), s)
+replace_dependency!(s::Scheduler, dep::Pair{JobID,Tuple{JobID,String}}) = addaction!(s->replace_edge!(s,dep), s)
 
 setfunction!(f::Function, s::Scheduler, jobID::JobID) = addaction!(s->_setfunction!(s,jobID,f), s)
 setresult!(s::Scheduler, jobID::JobID, result::Any)   = addaction!(s->_setresult!(s,jobID,result), s)
@@ -359,6 +361,21 @@ function remove_edge!(s::Scheduler, dep::Pair{JobID,Tuple{JobID,String}})
 	setdirty!(s, toID)
 	nothing
 end
+function replace_edge!(s::Scheduler, dep::Pair{JobID,Tuple{JobID,String}})
+	fromID,(toID,toName) = dep
+	@assert haskey(s.jobs, toID)   "Trying to replace edge to nonexisting job with id $(toID)"
+	@assert haskey(s.jobs, fromID) "Trying to replace (remove) edge from nonexisting job with id $(fromID)"
+	#edges::Dict{String,JobID} # name=>fromID
+	from,to = s.jobs[fromID], s.jobs[toID]
+	prevFromID = to.edges[toName]
+	if fromID!=prevFromID
+		@assert haskey(s.jobs, prevFromID) "Trying to replace (add) edge from nonexisting job with id $(fromID)"
+		remove_edge!(s, prevFromID=>(toID,toName))
+		add_edge!(s, dep)
+	end
+	nothing
+end
+
 
 function setdirty!(s::Scheduler, jobID::JobID)
 	job = s.jobs[jobID]
