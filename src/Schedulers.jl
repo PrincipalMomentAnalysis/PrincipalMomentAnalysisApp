@@ -140,14 +140,14 @@ function status(s::Scheduler)
 	end
 	running, detached, spawned, waiting
 end
-function statusstring(s::Scheduler)
+function statusstring(s::Scheduler; delim=", ")
 	running, detached, spawned, waiting = status(s)
 	strs = String[]
 	isempty(running)  || push!(strs, string("Running (",  join(_durationstring.(running),  ", "), ")"))
 	isempty(detached) || push!(strs, string("Detached (", join(_durationstring.(detached), ", "), ")"))
 	isempty(spawned)  || push!(strs, string("Spawned (",  join(_durationstring.(spawned),  ", "), ")"))
 	isempty(waiting)  || push!(strs, string("Waiting (",  join(_durationstring.(waiting),  ", "), ")"))
-	join(strs, ", ")
+	join(strs, delim)
 end
 
 """
