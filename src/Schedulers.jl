@@ -4,6 +4,7 @@ using DataStructures
 
 export
 	Scheduler,
+	PropagatedError,
 	JobID,
 	createjob!,
 	deletejob!,
@@ -72,6 +73,15 @@ function Scheduler(;threaded=Threads.nthreads()>1, verbose=false)
 	threaded && Threads.nthreads()==1 && @warn "Trying to run threaded Scheduler, but threading is not enabled, please set the environment variable JULIA_NUM_THREADS to the desired number of threads."
 	Scheduler(threaded, Ref(0), Threads.Atomic{JobID}(1), Dict{JobID,Job}(), Channel{Function}(Inf), Channel{Function}(Inf), [], Set{JobID}(), Dict{DetachedJob,UInt64}(), Ref(false), verbose)
 end
+
+struct PropagatedError{T<:Exception} <: Exception
+	e::T
+	jobName::String
+	inputName::String
+end
+errorchain(io::IO, e::Exception) = showerror(io,e)
+errorchain(io::IO, e::PropagatedError) = (print(io, e.inputName, '[', e.jobName, "]<="); errorchain(io, e.e))
+Base.showerror(io::IO, e::PropagatedError) = (print(io::IO, "Propagated error: "); errorchain(io,e))
 
 
 # --- exported functions ---
@@ -153,9 +163,14 @@ end
 """
 	jobstatus(s::Scheduler, jobID::JobID)
 
-Returns one of :doesntexist, :notstarted, :waiting, :spawned, :running, :done.
+Returns one of :doesntexist, :notstarted, :waiting, :spawned, :running, :done, :errored
 """
-jobstatus(s::Scheduler, jobID::JobID) = haskey(s.jobs, jobID) ? s.jobs[jobID].status : :doesntexist
+function jobstatus(s::Scheduler, jobID::JobID)
+	haskey(s.jobs, jobID) || return :doesntexist
+	job = s.jobs[jobID]
+	job.status==:done && job.result isa Exception && return :errored
+	job.status
+end
 
 
 # --- internal functions ---
@@ -314,12 +329,8 @@ function _finish!(s::Scheduler, jobID::JobID, runAt::Timestamp, result::Any, sta
 		@assert job.status in (:running,:done)
 		job.result = result
 		_setstatus!(s, jobID, job, :done, statusChangedTime)
-		if result isa Exception
-			setdirty!(s, jobID)
-		else
-			for callback in job.callbacks
-				callback(job.result)
-			end
+		for callback in job.callbacks
+			callback(job.result)
 		end
 		empty!(job.callbacks)
 	else
@@ -415,7 +426,8 @@ function runjob!(s::Scheduler, jobID::JobID, jobName::String, changedAt::Threads
 			# sanity check input and propagate errors
 			for (name,v) in input
 				@assert v != nothing "Job \"$jobName\" input \"$name\" has not been computed."
-				@assert !(v isa Exception) "Job \"$jobName\" input \"$name\" errored: $v."
+				#@assert !(v isa Exception) "Job \"$jobName\" input \"$name\" errored: $v."
+				v isa Exception && throw(PropagatedError(v,jobName,name))
 			end
 			result = f(jobStatus, input)
 			dur = round((time_ns()-jobStartTime)/1e9,digits=1)
@@ -424,8 +436,10 @@ function runjob!(s::Scheduler, jobID::JobID, jobName::String, changedAt::Threads
 			s.verbose && @info "Finished running$detachedStr $jobName[$(dur)s] ($jobID@$runAt) in thread $(Threads.threadid())."
 			isCanceled || @assert result!=nothing "Job $jobName returned nothing"
 		catch err
-			@warn "Job $jobName ($jobID@$runAt) failed"
-			showerror(stdout, err, catch_backtrace())
+			if !(err isa PropagatedError)
+				@warn "Job $jobName ($jobID@$runAt) failed"
+				showerror(stdout, err, catch_backtrace())
+			end
 			result = err
 		end
 	end
