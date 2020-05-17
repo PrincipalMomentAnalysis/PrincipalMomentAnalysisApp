@@ -4,6 +4,7 @@ using DataStructures
 
 export
 	Scheduler,
+	JobStatusChange,
 	PropagatedError,
 	JobID,
 	createjob!,
@@ -22,7 +23,8 @@ export
 	step!,
 	status,
 	statusstring,
-	jobstatus
+	jobstatus,
+	jobname
 
 const JobID = Int
 const Timestamp = Int
@@ -55,6 +57,16 @@ struct DetachedJob
 	jobID::JobID
 	runAt::Timestamp
 end
+struct JobStatusChange
+	jobID::JobID
+	status::Symbol
+	timestamp::Timestamp
+	message::String
+end
+function JobStatusChange(jobID::JobID,job::Job)
+	job.status==:done && job.result isa Exception && return JobStatusChange(jobID, :errored, job.statusChangedTime, sprint(showerror,job.result))
+	JobStatusChange(jobID, job.status, job.statusChangedTime, "")
+end
 
 struct Scheduler
 	threaded::Bool
@@ -67,11 +79,12 @@ struct Scheduler
 	activeJobs::Set{JobID}
 	detachedJobs::Dict{DetachedJob, UInt64} # -> time_ns() when job started running
 	hasSpawned::Ref{Bool}
+	statusChannel::Union{Channel{JobStatusChange},Nothing}
 	verbose::Bool
 end
-function Scheduler(;threaded=Threads.nthreads()>1, verbose=false)
+function Scheduler(;threaded=Threads.nthreads()>1, statusChannel=nothing, verbose=false)
 	threaded && Threads.nthreads()==1 && @warn "Trying to run threaded Scheduler, but threading is not enabled, please set the environment variable JULIA_NUM_THREADS to the desired number of threads."
-	Scheduler(threaded, Ref(0), Threads.Atomic{JobID}(1), Dict{JobID,Job}(), Channel{Function}(Inf), Channel{Function}(Inf), [], Set{JobID}(), Dict{DetachedJob,UInt64}(), Ref(false), verbose)
+	Scheduler(threaded, Ref(0), Threads.Atomic{JobID}(1), Dict{JobID,Job}(), Channel{Function}(Inf), Channel{Function}(Inf), [], Set{JobID}(), Dict{DetachedJob,UInt64}(), Ref(false), statusChannel, verbose)
 end
 
 struct PropagatedError{T<:Exception} <: Exception
@@ -172,6 +185,8 @@ function jobstatus(s::Scheduler, jobID::JobID)
 	job.status
 end
 
+jobname(s::Scheduler, jobID::JobID) = (@assert haskey(s.jobs, jobID); s.jobs[jobID].name)
+
 
 # --- internal functions ---
 
@@ -186,6 +201,7 @@ function _setstatus!(s::Scheduler, jobID::JobID, job::Job, status::Symbol, statu
 	job.statusChangedTime = statusChangedTime
 	wasActive && !isActive &&  pop!(s.activeJobs, jobID)
 	isActive && !wasActive && push!(s.activeJobs, jobID)
+	s.statusChannel!=nothing && put!(s.statusChannel, JobStatusChange(jobID, job))
 	nothing
 end
 _durationstring(t::Tuple{String,Float64}, digits=1) = string(t[1], '[', round(t[2],digits=digits), "s]")
@@ -197,6 +213,7 @@ addaction!(action::Function, s::Scheduler; slow::Bool=false) = (put!(slow ? s.sl
 function _createjob!(s::Scheduler, jobID::JobID, x, name::String, spawn::Bool)
 	job = Job(name, x, newtimestamp!(s), spawn)
 	s.jobs[jobID] = job
+	_setstatus!(s, jobID, job, job.status)
 	nothing
 end
 
@@ -426,7 +443,6 @@ function runjob!(s::Scheduler, jobID::JobID, jobName::String, changedAt::Threads
 			# sanity check input and propagate errors
 			for (name,v) in input
 				@assert v != nothing "Job \"$jobName\" input \"$name\" has not been computed."
-				#@assert !(v isa Exception) "Job \"$jobName\" input \"$name\" errored: $v."
 				v isa Exception && throw(PropagatedError(v,jobName,name))
 			end
 			result = f(jobStatus, input)
