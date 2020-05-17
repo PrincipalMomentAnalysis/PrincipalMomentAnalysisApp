@@ -93,7 +93,7 @@ struct PropagatedError{T<:Exception} <: Exception
 	inputName::String
 end
 errorchain(io::IO, e::Exception) = showerror(io,e)
-errorchain(io::IO, e::PropagatedError) = (print(io, e.inputName, '[', e.jobName, "]<="); errorchain(io, e.e))
+errorchain(io::IO, e::PropagatedError) = (print(io, e.inputName, '[', e.jobName, "]<--"); errorchain(io, e.e))
 Base.showerror(io::IO, e::PropagatedError) = (print(io::IO, "Propagated error: "); errorchain(io,e))
 
 
@@ -185,7 +185,7 @@ function jobstatus(s::Scheduler, jobID::JobID)
 	job.status
 end
 
-jobname(s::Scheduler, jobID::JobID) = (@assert haskey(s.jobs, jobID); s.jobs[jobID].name)
+jobname(s::Scheduler, jobID::JobID) = get(s.jobs, jobID, ) ? s.jobs[jobID].name : "Unknown"
 
 
 # --- internal functions ---
