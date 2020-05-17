@@ -185,7 +185,7 @@ function jobstatus(s::Scheduler, jobID::JobID)
 	job.status
 end
 
-jobname(s::Scheduler, jobID::JobID) = get(s.jobs, jobID, ) ? s.jobs[jobID].name : "Unknown"
+jobname(s::Scheduler, jobID::JobID) = haskey(s.jobs, jobID) ? s.jobs[jobID].name : "Unknown"
 
 
 # --- internal functions ---
