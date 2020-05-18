@@ -42,7 +42,7 @@ mutable struct Job
 	edges::Dict{String,JobID} # name=>fromID
 	edgesReverse::Set{Tuple{JobID,String}} # Set{(toID,name)}
 	result::Any
-	status::Symbol # one of :notstarted,:waiting,:spawned,:running,:done
+	status::Symbol # one of :notstarted,:waiting,:spawned,:running,:done,:errored
 	statusChangedTime::UInt64 # from time_ns()
 	runAt::Timestamp
 	waitingFor::Set{JobID}
@@ -51,7 +51,7 @@ end
 Job(changedAt::Int, name::String, f::Union{Function,Nothing}, spawn::Bool, result, status::Symbol, runAt::Timestamp) = Job(Threads.Atomic{Int}(changedAt), name, f, spawn, Dict{String,JobID}(), Set{Tuple{JobID,String}}(), result, status, time_ns(), runAt, Set{JobID}(), [])
 
 Job(name::String, f::Function, changedAt::Int, spawn::Bool) = Job(changedAt, name, f,       spawn, nothing, :notstarted, -1)
-Job(name::String, result::Any, changedAt::Int, spawn::Bool) = Job(changedAt, name, nothing, spawn, result,  :done,       changedAt)
+Job(name::String, result::Any, changedAt::Int, spawn::Bool) = Job(changedAt, name, nothing, spawn, result,  result2status(result), changedAt)
 
 struct DetachedJob
 	jobID::JobID
@@ -63,10 +63,8 @@ struct JobStatusChange
 	timestamp::Timestamp
 	message::String
 end
-function JobStatusChange(jobID::JobID,job::Job)
-	job.status==:done && job.result isa Exception && return JobStatusChange(jobID, :errored, job.statusChangedTime, sprint(showerror,job.result))
-	JobStatusChange(jobID, job.status, job.statusChangedTime, "")
-end
+JobStatusChange(jobID::JobID,job::Job) =
+	JobStatusChange(jobID, job.status, job.statusChangedTime, job.status==:errored ? sprint(showerror,job.result) : "")
 
 struct Scheduler
 	threaded::Bool
@@ -178,17 +176,15 @@ end
 
 Returns one of :doesntexist, :notstarted, :waiting, :spawned, :running, :done, :errored
 """
-function jobstatus(s::Scheduler, jobID::JobID)
-	haskey(s.jobs, jobID) || return :doesntexist
-	job = s.jobs[jobID]
-	job.status==:done && job.result isa Exception && return :errored
-	job.status
-end
+jobstatus(s::Scheduler, jobID::JobID) = haskey(s.jobs, jobID) ? s.jobs[jobID].status : :doesntexist
 
 jobname(s::Scheduler, jobID::JobID) = haskey(s.jobs, jobID) ? s.jobs[jobID].name : "Unknown"
 
 
 # --- internal functions ---
+
+result2status(::Any)       = :done
+result2status(::Exception) = :errored
 
 function _setstatus!(s::Scheduler, jobID::JobID, job::Job, status::Symbol, statusChangedTime::UInt64=time_ns())
 	if status==:notstarted && job.status in (:running,:spawned)
@@ -249,7 +245,7 @@ function _setresult!(s::Scheduler, jobID::JobID, result::Any)
 	updatetimestamps!(s)
 	@assert job.status == :notstarted
 	job.result = result
-	_setstatus!(s, jobID, job, :done)
+	_setstatus!(s, jobID, job, result2status(result))
 	nothing
 end
 
@@ -311,7 +307,7 @@ function _spawn!(s::Scheduler, jobID::JobID, scheduledAt::Timestamp)
 	changedAt = job.changedAt[]
 	scheduledAt < changedAt && return # Spawned after dependency was finished, but now out of date.
 
-	if job.status == :done
+	if job.status in (:done, :errored)
 		job.result != nothing && _finish!(s, jobID, job.runAt, job.result, time_ns())
 	elseif job.status == :waiting
 		@assert isempty(job.waitingFor)
@@ -343,9 +339,9 @@ function _finish!(s::Scheduler, jobID::JobID, runAt::Timestamp, result::Any, sta
 	job = s.jobs[jobID]
 	changedAt = job.changedAt[]
 	if changedAt == runAt # we finished the last version of the job
-		@assert job.status in (:running,:done)
+		@assert job.status in (:running,:done,:errored)
 		job.result = result
-		_setstatus!(s, jobID, job, :done, statusChangedTime)
+		_setstatus!(s, jobID, job, result2status(result), statusChangedTime)
 		for callback in job.callbacks
 			callback(job.result)
 		end
