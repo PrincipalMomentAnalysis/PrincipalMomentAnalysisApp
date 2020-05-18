@@ -187,7 +187,7 @@ result2status(::Any)       = :done
 result2status(::Exception) = :errored
 
 function _setstatus!(s::Scheduler, jobID::JobID, job::Job, status::Symbol, statusChangedTime::UInt64=time_ns())
-	if status==:notstarted && job.status in (:running,:spawned)
+	if status in (:notstarted,:doesntexist) && job.status in (:running,:spawned)
 		job.status==:running && @warn "Detaching running job $(job.name)"
 		s.detachedJobs[DetachedJob(jobID,job.runAt)] = job.statusChangedTime
 	end
@@ -223,7 +223,7 @@ function _deletejob!(s::Scheduler, jobID::JobID)
 	for (toID,name) in job.edgesReverse
 		remove_edge!(s, jobID=>(toID,name))
 	end
-	_setstatus!(s, jobID, job, :notstarted) # ensures removal from active jobs and detaching if needed
+	_setstatus!(s, jobID, job, :doesntexist) # ensures removal from active jobs and detaching if needed
 	delete!(s.jobs, jobID)
 	nothing
 end
