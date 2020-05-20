@@ -60,7 +60,7 @@ end
 struct JobStatusChange
 	jobID::JobID
 	status::Symbol
-	timestamp::Timestamp
+	time::UInt64
 	message::String
 end
 JobStatusChange(jobID::JobID,job::Job) =
