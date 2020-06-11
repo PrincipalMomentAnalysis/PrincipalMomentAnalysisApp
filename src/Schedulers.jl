@@ -59,12 +59,13 @@ struct DetachedJob
 end
 struct JobStatusChange
 	jobID::JobID
+	jobName::String
 	status::Symbol
 	time::UInt64
 	message::String
 end
 JobStatusChange(jobID::JobID,job::Job) =
-	JobStatusChange(jobID, job.status, job.statusChangedTime, job.status==:errored ? sprint(showerror,job.result) : "")
+	JobStatusChange(jobID, job.name, job.status, job.statusChangedTime, job.status==:errored ? sprint(showerror,job.result) : "")
 
 struct Scheduler
 	threaded::Bool
