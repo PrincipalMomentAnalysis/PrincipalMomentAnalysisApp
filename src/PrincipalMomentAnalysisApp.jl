@@ -14,6 +14,7 @@ using JSExpr
 using Colors
 using PlotlyJS
 using IterTools
+using SparseArrays
 
 include("Schedulers.jl")
 using .Schedulers

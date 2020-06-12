@@ -4,7 +4,8 @@ function plotsimplices(V, sg, colorBy, colorDict;
 	                   opacity=0.3, markerSize=5, lineWidth=2,
 	                   shapeBy=nothing, shapeDict=nothing,
 	                   width=1536, height=768,
-	                   xLabel="x", yLabel="y", zLabel="z")
+	                   xLabel="x", yLabel="y", zLabel="z",
+	                   legendTitle="")
 	traces = GenericTrace[]
 
 	# plot each group in different colors
@@ -28,20 +29,23 @@ function plotsimplices(V, sg, colorBy, colorDict;
 			shapeBy!=nothing && shapeDict!=nothing && push!(extras, (marker_symbol=[shapeDict[k] for k in shapeBy],))
 			isempty(extras) || (extras = pairs(extras...))
 
-			points = scatter3d(;x=V[:,1],y=V[:,2],z=V[:,3], mode="markers", marker=attr(color=colorBy, colorscale="Viridis", showscale=true, size=markerSize, line_width=0), name="", extras...)
+			points = scatter3d(;x=V[:,1],y=V[:,2],z=V[:,3], mode="markers", marker=attr(color=colorBy, colorscale="Viridis", showscale=true, size=markerSize, line_width=0, colorbar=attr(title=legendTitle)), name="", extras...)
 			push!(traces, points)
 		end
 	end
 
 	if drawLines
+		LINE_LIMIT = 300_000
+
 		x = Union{Nothing,Float64}[]
 		y = Union{Nothing,Float64}[]
 		z = Union{Nothing,Float64}[]
 		colorsRGB    = RGB{Float64}[]
 		colorsScalar = Float64[]
 		GK = sg.G*sg.G'
-		for ci in findall(GK.!=0)
-			r,c = Tuple(ci)
+
+		nbrLines = 0
+		for (r,c,_) in zip(findnz(GK)...)
 			r>c || continue # just use lower triangular part
 			push!(x, V[r,1], V[c,1], nothing)
 			push!(y, V[r,2], V[c,2], nothing)
@@ -51,16 +55,25 @@ function plotsimplices(V, sg, colorBy, colorDict;
 			else
 				push!(colorsRGB, colorDict[colorBy[r]], colorDict[colorBy[c]], RGB(0.,0.,0.))
 			end
-		end
-		if colorDict==nothing
-			push!(traces, scatter3d(;x=x,y=y,z=z, mode="lines", line=attr(color=colorsScalar, colorscale="Viridis", width=lineWidth), showlegend=false))
-		else
-			push!(traces, scatter3d(;x=x,y=y,z=z, mode="lines", line=attr(color=colorsRGB, width=lineWidth), showlegend=false))
+
+			nbrLines += 1
+			nbrLines>LINE_LIMIT && break
 		end
 
+		if nbrLines > LINE_LIMIT
+			@warn "More than $LINE_LIMIT lines to plot, disabling line plotting for performance reasons."
+		else
+			if colorDict==nothing
+				push!(traces, scatter3d(;x=x,y=y,z=z, mode="lines", line=attr(color=colorsScalar, colorscale="Viridis", width=lineWidth), showlegend=false))
+			else
+				push!(traces, scatter3d(;x=x,y=y,z=z, mode="lines", line=attr(color=colorsRGB, width=lineWidth), showlegend=false))
+			end
+		end
 	end
 
 	if drawTriangles
+		TRIANGLE_LIMIT = 2_000_000
+
 		triangleInds = Int[]
 		for c=1:size(sg.G,2)
 			ind = findall(sg.G[:,c])
@@ -77,17 +90,22 @@ function plotsimplices(V, sg, colorBy, colorDict;
 		triangleInds = unique(triangleInds,dims=2) # remove duplicates
 		triangleInds .-= 1 # PlotlyJS wants zero-based indices
 
-		if colorDict==nothing
-			push!(traces, mesh3d(; x=V[:,1],y=V[:,2],z=V[:,3],i=triangleInds[1,:],j=triangleInds[2,:],k=triangleInds[3,:], intensity=colorBy, colorscale="Viridis", opacity=opacity, showlegend=false))
+		if size(triangleInds,2)>TRIANGLE_LIMIT
+			@warn "More than $TRIANGLE_LIMIT triangles to plot, disabling triangle plotting for performance reasons."
 		else
-			vertexColor = getindex.((colorDict,), colorBy)
-			push!(traces, mesh3d(; x=V[:,1],y=V[:,2],z=V[:,3],i=triangleInds[1,:],j=triangleInds[2,:],k=triangleInds[3,:], vertexcolor=vertexColor, opacity=opacity, showlegend=false))
+			if colorDict==nothing
+				push!(traces, mesh3d(; x=V[:,1],y=V[:,2],z=V[:,3],i=triangleInds[1,:],j=triangleInds[2,:],k=triangleInds[3,:], intensity=colorBy, colorscale="Viridis", opacity=opacity, showlegend=false))
+			else
+				vertexColor = getindex.((colorDict,), colorBy)
+				push!(traces, mesh3d(; x=V[:,1],y=V[:,2],z=V[:,3],i=triangleInds[1,:],j=triangleInds[2,:],k=triangleInds[3,:], vertexcolor=vertexColor, opacity=opacity, showlegend=false))
+			end
 		end
 	end
 
 
 	layout = Layout(autosize=false, width=width, height=height, margin=attr(l=0, r=0, b=0, t=65), title=title,
-	                scene=attr(xaxis=attr(title=xLabel), yaxis=attr(title=yLabel), zaxis=attr(title=zLabel)))
+	                scene=attr(xaxis=attr(title=xLabel), yaxis=attr(title=yLabel), zaxis=attr(title=zLabel)),
+	                legend=attr(title_text=legendTitle))
 	# layout = Layout(margin=attr(l=0, r=0, b=0, t=65), title=title)
 	#plot(traces, layout)
 	traces, layout # return plot args rather than plot because of threading issues.
