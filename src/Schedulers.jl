@@ -335,25 +335,24 @@ function _cancel!(s::Scheduler, jobID::JobID)
 end
 
 function _finish!(s::Scheduler, jobID::JobID, runAt::Timestamp, result::Any, statusChangedTime::UInt64)
-	haskey(s.jobs, jobID) || return # nothing to do if the job was deleted before it finished
-	updatetimestamps!(s)
-	job = s.jobs[jobID]
-	changedAt = job.changedAt[]
-	if changedAt == runAt # we finished the last version of the job
-		@assert job.status in (:running,:done,:errored)
-		job.result = result
-		_setstatus!(s, jobID, job, result2status(result), statusChangedTime)
-		for callback in job.callbacks
-			callback(job.result)
+	if haskey(s.jobs, jobID)
+		updatetimestamps!(s)
+		job = s.jobs[jobID]
+		changedAt = job.changedAt[]
+		if changedAt == runAt # we finished the last version of the job
+			@assert job.status in (:running,:done,:errored)
+			job.result = result
+			_setstatus!(s, jobID, job, result2status(result), statusChangedTime)
+			for callback in job.callbacks
+				callback(job.result)
+			end
+			empty!(job.callbacks)
+			result isa Exception && throw(result)
+			return
 		end
-		empty!(job.callbacks)
-	else
-		# remove from list of detached jobs
-		pop!(s.detachedJobs, DetachedJob(jobID,runAt))
 	end
-
-	result isa Exception && throw(result)
-
+	# if we reach here, the job was either deleted or we finished running an old version of the job
+	pop!(s.detachedJobs, DetachedJob(jobID,runAt)) # remove from list of detached jobs
 	nothing
 end
 
