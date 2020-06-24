@@ -105,7 +105,7 @@ function plotsimplices(V, sg, colorBy, colorDict;
 
 	layout = Layout(autosize=false, width=width, height=height, margin=attr(l=0, r=0, b=0, t=65), title=title,
 	                scene=attr(xaxis=attr(title=xLabel), yaxis=attr(title=yLabel), zaxis=attr(title=zLabel)),
-	                legend=attr(title_text=legendTitle))
+	                legend=attr(title_text=legendTitle, itemsizing="constant"))
 	# layout = Layout(margin=attr(l=0, r=0, b=0, t=65), title=title)
 	#plot(traces, layout)
 	traces, layout # return plot args rather than plot because of threading issues.
