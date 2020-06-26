@@ -30,7 +30,7 @@ function plotsimplices(V, sg, colorBy, colorDict;
 			shapeBy!=nothing && shapeDict!=nothing && push!(extras, (marker_symbol=[shapeDict[k] for k in shapeBy],))
 			isempty(extras) || (extras = pairs(extras...))
 
-			points = scatter3d(;x=V[:,1],y=V[:,2],z=V[:,3], mode="markers", marker=attr(color=colorBy, colorscale="Viridis", showscale=true, size=markerSize, line_width=0, colorbar=attr(title=legendTitle)), name="", extras...)
+			points = scatter3d(;x=V[:,1],y=V[:,2],z=V[:,3], mode="markers", marker=attr(color=colorBy, colorscale="RdBu", showscale=true, size=markerSize, line_width=0, colorbar=attr(title=legendTitle)), name="", extras...)
 			push!(traces, points)
 		end
 	end
@@ -65,7 +65,7 @@ function plotsimplices(V, sg, colorBy, colorDict;
 			@warn "More than $LINE_LIMIT lines to plot, disabling line plotting for performance reasons."
 		else
 			if colorDict==nothing
-				push!(traces, scatter3d(;x=x,y=y,z=z, mode="lines", line=attr(color=colorsScalar, colorscale="Viridis", width=lineWidth), showlegend=false))
+				push!(traces, scatter3d(;x=x,y=y,z=z, mode="lines", line=attr(color=colorsScalar, colorscale="RdBu", width=lineWidth), showlegend=false))
 			else
 				push!(traces, scatter3d(;x=x,y=y,z=z, mode="lines", line=attr(color=colorsRGB, width=lineWidth), showlegend=false))
 			end
@@ -95,7 +95,7 @@ function plotsimplices(V, sg, colorBy, colorDict;
 			@warn "More than $TRIANGLE_LIMIT triangles to plot, disabling triangle plotting for performance reasons."
 		else
 			if colorDict==nothing
-				push!(traces, mesh3d(; x=V[:,1],y=V[:,2],z=V[:,3],i=triangleInds[1,:],j=triangleInds[2,:],k=triangleInds[3,:], intensity=colorBy, colorscale="Viridis", opacity=opacity, showlegend=false))
+				push!(traces, mesh3d(; x=V[:,1],y=V[:,2],z=V[:,3],i=triangleInds[1,:],j=triangleInds[2,:],k=triangleInds[3,:], intensity=colorBy, colorscale="RdBu", opacity=opacity, showlegend=false))
 			else
 				vertexColor = getindex.((colorDict,), colorBy)
 				push!(traces, mesh3d(; x=V[:,1],y=V[:,2],z=V[:,3],i=triangleInds[1,:],j=triangleInds[2,:],k=triangleInds[3,:], vertexcolor=vertexColor, opacity=opacity, showlegend=false))
