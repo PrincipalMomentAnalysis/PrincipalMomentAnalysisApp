@@ -13,7 +13,7 @@ using JSExpr
 
 using Colors
 using PlotlyJS
-using IterTools
+import IterTools
 using SparseArrays
 
 include("Schedulers.jl")

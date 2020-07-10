@@ -39,7 +39,7 @@ function plotsimplices(V, sg, colorBy, colorDict;
 			length(ind)<3 && continue # no triangles
 
 			# slow and ugly solution
-			for tri in subsets(ind,3)
+			for tri in IterTools.subsets(ind,3)
 				append!(triangleInds, sort(tri))
 			end
 		end
