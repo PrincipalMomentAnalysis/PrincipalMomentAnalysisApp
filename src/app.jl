@@ -193,11 +193,11 @@ function makeplot(st, input::Dict{String,Any})
 	                         drawPoints=showPoints, drawLines=showLines, drawTriangles=showTriangles,
 	                         opacity=triangleOpacity, markerSize=markerSize, lineWidth=lineWidth,
 	                         shapeBy=shapeBy, shapeDict=shapeDict,
-	                         width=plotWidth, height=plotHeight,
 	                         xLabel=string("PMA",xaxis), yLabel=string("PMA",yaxis), zLabel=string("PMA",zaxis))
+	plotArgs, plotWidth, plotHeight
 end
 
-showplot(plotArgs, toGUI::Channel) = put!(toGUI, :displayplot=>plotArgs)
+showplot(data, toGUI::Channel) = put!(toGUI, :displayplot=>data)
 
 
 function exportsingle(st, input::Dict{String,Any})
@@ -483,7 +483,14 @@ function pmaapp(; verbosityLevel=1, return_job_graph=false)
 			if msgName == :samplestatus
 				js(w, js"""setSampleStatus($msgArgs)""")
 			elseif msgName == :displayplot
-				display(plot(msgArgs...))
+				plotArgs,plotWidth,plotHeight = msgArgs
+				pl = plot(plotArgs...)
+				relayout!(pl, Dict(:margin=>attr(l=1, r=1, b=1, t=50))) # by doing this here - we seem to avoid a bug that causes axis ticks to disappear from subsequent Volcano(!) plots.
+
+				display(pl)
+				# Slight hack to set window size properly
+				plSize = size(pl)
+				size(pl.window, floor(Int,plotWidth*1.05), floor(Int,plotHeight*1.05))
 			elseif msgName == :displaysampleannotnames
 				js(w, js"""setSampleAnnotNames($(msgArgs[1]), $(msgArgs[2]-1))""")
 			elseif msgName == :exited
