@@ -28,46 +28,37 @@ function plotsimplices(V, sg, colorBy, colorDict;
 		end
 	end
 
+	if drawTriangles && size(V,2)>2 # Triangles not supported in 2d plot for now
+		TRIANGLE_LIMIT = 2_000_000
 
-	# plot each group in different colors
-	if drawPoints
-		# TODO: merge the two cases below?
+		triangleInds = Int[]
+		for c=1:size(sg.G,2)
+			ind = findall(sg.G[:,c])
+			isempty(ind) && continue
 
-		if colorDict != nothing
-			for cb in unique(colorBy)
-				ind = findall(colorBy.==cb )
-				col = colorDict[cb]
+			length(ind)<3 && continue # no triangles
 
-				extras = []
-				shapeBy!=nothing && shapeDict!=nothing && push!(extras, (marker_symbol=[shapeDict[k] for k in shapeBy[ind]],))
-				isempty(extras) || (extras = pairs(extras...))
-
-				points = _scatter(V[ind,:]; mode="markers", marker_color=col, marker_size=markerSize, marker_line_width=0, name=string(cb), extras...)
-				push!(traces, points)
+			# slow and ugly solution
+			for tri in subsets(ind,3)
+				append!(triangleInds, sort(tri))
 			end
+		end
+		triangleInds = reshape(triangleInds,3,:)
+		triangleInds = unique(triangleInds,dims=2) # remove duplicates
+		triangleInds .-= 1 # PlotlyJS wants zero-based indices
+
+		if size(triangleInds,2)>TRIANGLE_LIMIT
+			@warn "More than $TRIANGLE_LIMIT triangles to plot, disabling triangle plotting for performance reasons."
 		else
-			extras = []
-			shapeBy!=nothing && shapeDict!=nothing && push!(extras, (marker_symbol=[shapeDict[k] for k in shapeBy],))
-			isempty(extras) || (extras = pairs(extras...))
-
-			V2 = V
-			c = colorBy
-
-			# handle missing values by plotting them in another trace (with a different color)
-			if any(ismissing, c)
-				mask = ismissing.(c)
-				pointsNA = _scatter(V2[mask,:]; mode="markers", marker=attr(color=colorant"black", size=markerSize, line_width=0), name="", showlegend=false, extras...)
-				push!(traces, pointsNA)
-
-				V2 = V2[.!mask,:]
-				c = disallowmissing(c[.!mask])
+			if colorDict==nothing
+				vertexColor = [ ismissing(t) ? RGB(0.,0.,0.) : lookup(colorScale, (t-tOffs)*tScale) for t in colorBy ]
+			else
+				vertexColor = getindex.((colorDict,), colorBy)
 			end
+			push!(traces, mesh3d(; x=V[:,1],y=V[:,2],z=V[:,3],i=triangleInds[1,:],j=triangleInds[2,:],k=triangleInds[3,:], vertexcolor=vertexColor, opacity=opacity, lighting=attr(ambient=1.0,diffuse=0.0,specular=0.0,fresnel=0.0), showlegend=false))
 
-			points = _scatter(V2; mode="markers", marker=attr(color=c, colorscale=to_list(colorScale), showscale=true, size=markerSize, line_width=0, colorbar=attr(title=legendTitle)), name="", showlegend=false, extras...)
-			push!(traces, points)
 		end
 	end
-
 
 	if drawLines
 		LINE_LIMIT = 300_000
@@ -117,35 +108,42 @@ function plotsimplices(V, sg, colorBy, colorDict;
 		end
 	end
 
-	if drawTriangles && size(V,2)>2 # Triangles not supported in 2d plot for now
-		TRIANGLE_LIMIT = 2_000_000
+	# plot each group in different colors
+	if drawPoints
+		# TODO: merge the two cases below?
 
-		triangleInds = Int[]
-		for c=1:size(sg.G,2)
-			ind = findall(sg.G[:,c])
-			isempty(ind) && continue
+		if colorDict != nothing
+			for cb in unique(colorBy)
+				ind = findall(colorBy.==cb )
+				col = colorDict[cb]
 
-			length(ind)<3 && continue # no triangles
+				extras = []
+				shapeBy!=nothing && shapeDict!=nothing && push!(extras, (marker_symbol=[shapeDict[k] for k in shapeBy[ind]],))
+				isempty(extras) || (extras = pairs(extras...))
 
-			# slow and ugly solution
-			for tri in subsets(ind,3)
-				append!(triangleInds, sort(tri))
+				points = _scatter(V[ind,:]; mode="markers", marker_color=col, marker_size=markerSize, marker_line_width=0, name=string(cb), extras...)
+				push!(traces, points)
 			end
-		end
-		triangleInds = reshape(triangleInds,3,:)
-		triangleInds = unique(triangleInds,dims=2) # remove duplicates
-		triangleInds .-= 1 # PlotlyJS wants zero-based indices
-
-		if size(triangleInds,2)>TRIANGLE_LIMIT
-			@warn "More than $TRIANGLE_LIMIT triangles to plot, disabling triangle plotting for performance reasons."
 		else
-			if colorDict==nothing
-				vertexColor = [ ismissing(t) ? RGB(0.,0.,0.) : lookup(colorScale, (t-tOffs)*tScale) for t in colorBy ]
-			else
-				vertexColor = getindex.((colorDict,), colorBy)
-			end
-			push!(traces, mesh3d(; x=V[:,1],y=V[:,2],z=V[:,3],i=triangleInds[1,:],j=triangleInds[2,:],k=triangleInds[3,:], vertexcolor=vertexColor, opacity=opacity, lighting=attr(ambient=1.0,diffuse=0.0,specular=0.0,fresnel=0.0), showlegend=false))
+			extras = []
+			shapeBy!=nothing && shapeDict!=nothing && push!(extras, (marker_symbol=[shapeDict[k] for k in shapeBy],))
+			isempty(extras) || (extras = pairs(extras...))
 
+			V2 = V
+			c = colorBy
+
+			# handle missing values by plotting them in another trace (with a different color)
+			if any(ismissing, c)
+				mask = ismissing.(c)
+				pointsNA = _scatter(V2[mask,:]; mode="markers", marker=attr(color=colorant"black", size=markerSize, line_width=0), name="", showlegend=false, extras...)
+				push!(traces, pointsNA)
+
+				V2 = V2[.!mask,:]
+				c = disallowmissing(c[.!mask])
+			end
+
+			points = _scatter(V2; mode="markers", marker=attr(color=c, colorscale=to_list(colorScale), showscale=true, size=markerSize, line_width=0, colorbar=attr(title=legendTitle)), name="", showlegend=false, extras...)
+			push!(traces, points)
 		end
 	end
 
