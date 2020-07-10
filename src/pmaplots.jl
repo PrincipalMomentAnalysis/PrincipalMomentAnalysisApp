@@ -1,3 +1,8 @@
+function _scatter(V; kwargs...)
+	size(V,2)==2 && return scatter(;x=V[:,1], y=V[:,2], kwargs...)
+	scatter3d(;x=V[:,1], y=V[:,2], z=V[:,3], kwargs...)
+end
+
 function plotsimplices(V, sg, colorBy, colorDict;
 	                   drawPoints=true, drawLines=true, drawTriangles=true,
 	                   title="",
@@ -6,6 +11,8 @@ function plotsimplices(V, sg, colorBy, colorDict;
 	                   xLabel="x", yLabel="y", zLabel="z",
 	                   legendTitle="",
 	                   cameraAttr=attr())
+	@assert size(V,2) in 2:3
+
 	traces = GenericTrace[]
 
 	# colorscale setup
@@ -35,7 +42,7 @@ function plotsimplices(V, sg, colorBy, colorDict;
 				shapeBy!=nothing && shapeDict!=nothing && push!(extras, (marker_symbol=[shapeDict[k] for k in shapeBy[ind]],))
 				isempty(extras) || (extras = pairs(extras...))
 
-				points = scatter3d(;x=V[ind,1],y=V[ind,2],z=V[ind,3], mode="markers", marker_color=col, marker_size=markerSize, marker_line_width=0, name=string(cb), extras...)
+				points = _scatter(V[ind,:]; mode="markers", marker_color=col, marker_size=markerSize, marker_line_width=0, name=string(cb), extras...)
 				push!(traces, points)
 			end
 		else
@@ -43,20 +50,20 @@ function plotsimplices(V, sg, colorBy, colorDict;
 			shapeBy!=nothing && shapeDict!=nothing && push!(extras, (marker_symbol=[shapeDict[k] for k in shapeBy],))
 			isempty(extras) || (extras = pairs(extras...))
 
-			x,y,z = V[:,1],V[:,2],V[:,3]
+			V2 = V
 			c = colorBy
 
 			# handle missing values by plotting them in another trace (with a different color)
 			if any(ismissing, c)
 				mask = ismissing.(c)
-				pointsNA = scatter3d(;x=x[mask],y=y[mask],z=z[mask], mode="markers", marker=attr(color=colorant"black", size=markerSize, line_width=0), name="", showlegend=false, extras...)
+				pointsNA = _scatter(V2[mask,:]; mode="markers", marker=attr(color=colorant"black", size=markerSize, line_width=0), name="", showlegend=false, extras...)
 				push!(traces, pointsNA)
 
-				x,y,z = x[.!mask],y[.!mask],z[.!mask]
+				V2 = V2[.!mask,:]
 				c = disallowmissing(c[.!mask])
 			end
 
-			points = scatter3d(;x=x,y=y,z=z, mode="markers", marker=attr(color=c, colorscale=to_list(colorScale), showscale=true, size=markerSize, line_width=0, colorbar=attr(title=legendTitle)), name="", showlegend=false, extras...)
+			points = _scatter(V2; mode="markers", marker=attr(color=c, colorscale=to_list(colorScale), showscale=true, size=markerSize, line_width=0, colorbar=attr(title=legendTitle)), name="", showlegend=false, extras...)
 			push!(traces, points)
 		end
 	end
@@ -65,39 +72,52 @@ function plotsimplices(V, sg, colorBy, colorDict;
 	if drawLines
 		LINE_LIMIT = 300_000
 
-		x = Union{Nothing,Float64}[]
-		y = Union{Nothing,Float64}[]
-		z = Union{Nothing,Float64}[]
-		colorsRGB = RGB{Float64}[]
 		GK = sg.G*sg.G'
-
-		nbrLines = 0
-		for (r,c,_) in zip(findnz(GK)...)
-			r>c || continue # just use lower triangular part
-			push!(x, V[r,1], V[c,1], nothing)
-			push!(y, V[r,2], V[c,2], nothing)
-			push!(z, V[r,3], V[c,3], nothing)
-			if colorDict==nothing
-				t1,t2 = colorBy[r],colorBy[c]
-				col1 = ismissing(t1) ? RGB(0.,0.,0.) : lookup(colorScale, (t1-tOffs)*tScale)
-				col2 = ismissing(t2) ? RGB(0.,0.,0.) : lookup(colorScale, (t2-tOffs)*tScale)
-				push!(colorsRGB, col1, col2, RGB(0.,0.,0.))
-			else
-				push!(colorsRGB, colorDict[colorBy[r]], colorDict[colorBy[c]], RGB(0.,0.,0.))
-			end
-
-			nbrLines += 1
-			nbrLines>LINE_LIMIT && break
-		end
+		nbrLines = div(nnz(GK) - sum(i->GK[i,i]>0, 1:size(GK,1)), 2) # number of elements above the diagonal
 
 		if nbrLines > LINE_LIMIT
 			@warn "More than $LINE_LIMIT lines to plot, disabling line plotting for performance reasons."
 		else
-			push!(traces, scatter3d(;x=x,y=y,z=z, mode="lines", line=attr(color=colorsRGB, width=lineWidth), showlegend=false))
+			# every third point is "nothing" to make lines disconnected
+			VL = repeat(Union{Float64,Nothing}[nothing], nbrLines*3, size(V,2))
+			colorsRGB = repeat([RGB(0.,0.,0.)], nbrLines*3)
+
+			lineInd = 1
+			rows = rowvals(GK)
+			for c = 1:size(GK,2)
+				for k in nzrange(GK, c)
+					r = rows[k]
+					r>=c && break # just use upper triangular part
+					VL[lineInd,   :] .= V[r,:]
+					VL[lineInd+1, :] .= V[c,:]
+
+					if colorDict==nothing
+						t1,t2 = colorBy[r],colorBy[c]
+						col1 = ismissing(t1) ? RGB(0.,0.,0.) : lookup(colorScale, (t1-tOffs)*tScale)
+						col2 = ismissing(t2) ? RGB(0.,0.,0.) : lookup(colorScale, (t2-tOffs)*tScale)
+					else
+						col1 = colorDict[colorBy[r]]
+						col2 = colorDict[colorBy[c]]
+					end
+
+					colorsRGB[lineInd]   = col1
+					colorsRGB[lineInd+1] = col2
+
+					lineInd+=3
+				end
+			end
+			@assert lineInd == nbrLines*3+1
+
+			if size(V,2)==2
+				# PLOTLY DOESN'T HANDLE PER VERTEX COLORS FOR 2D LINES. THIS IS A STUPID WORKAROUND TO MAKE LINES BLACK IN 2D.
+				push!(traces, _scatter(VL; mode="lines", line=attr(color=colorant"black", width=lineWidth), showlegend=false))
+			else
+				push!(traces, _scatter(VL; mode="lines", line=attr(color=colorsRGB, width=lineWidth), showlegend=false))
+			end
 		end
 	end
 
-	if drawTriangles
+	if drawTriangles && size(V,2)>2 # Triangles not supported in 2d plot for now
 		TRIANGLE_LIMIT = 2_000_000
 
 		triangleInds = Int[]
@@ -129,10 +149,16 @@ function plotsimplices(V, sg, colorBy, colorDict;
 		end
 	end
 
-
-	layout = Layout(title=title,
-	                scene=attr(xaxis=attr(title=xLabel), yaxis=attr(title=yLabel), zaxis=attr(title=zLabel), camera=cameraAttr),
-	                legend=attr(title_text=legendTitle, itemsizing="constant"))
+	if size(V,2)==2
+		layout = Layout(title=title,
+		                xaxis=attr(title=xLabel), yaxis=attr(title=yLabel),
+		                legend=attr(title_text=legendTitle, itemsizing="constant"),
+		                hovermode="closest")
+	else
+		layout = Layout(title=title,
+		                scene=attr(xaxis=attr(title=xLabel), yaxis=attr(title=yLabel), zaxis=attr(title=zLabel), camera=cameraAttr),
+		                legend=attr(title_text=legendTitle, itemsizing="constant"))
+	end
 	traces, layout # return plot args rather than plot because of threading issues.
 end
 
