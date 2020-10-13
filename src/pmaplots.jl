@@ -118,6 +118,7 @@ function plotsimplices(V, sg, colorBy, colorDict;
 				col = colorDict[cb]
 
 				extras = []
+				length(colorDict)==1 && push!(extras, (;showlegend=false))
 				shapeBy!=nothing && shapeDict!=nothing && push!(extras, (marker_symbol=[shapeDict[k] for k in shapeBy[ind]],))
 				isempty(extras) || (extras = pairs(extras...))
 
