@@ -150,12 +150,13 @@ function plotsimplices(V, sg, colorBy, colorDict;
 
 	if size(V,2)==2
 		layout = Layout(title=title,
-		                xaxis=attr(title=xLabel), yaxis=attr(title=yLabel),
+		                xaxis=attr(title=xLabel, constrain="domain"),
+		                yaxis=attr(title=yLabel, constrain="domain", scaleanchor='x'),
 		                legend=attr(title_text=legendTitle, itemsizing="constant"),
 		                hovermode="closest")
 	else
 		layout = Layout(title=title,
-		                scene=attr(xaxis=attr(title=xLabel), yaxis=attr(title=yLabel), zaxis=attr(title=zLabel), camera=cameraAttr),
+		                scene=attr(xaxis=attr(title=xLabel), yaxis=attr(title=yLabel), zaxis=attr(title=zLabel), camera=cameraAttr, aspectmode="data"),
 		                legend=attr(title_text=legendTitle, itemsizing="constant"))
 	end
 	traces, layout # return plot args rather than plot because of threading issues.
