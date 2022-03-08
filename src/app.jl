@@ -70,7 +70,7 @@ function normalizesample(st, input::Dict{String,Any})
 
 	sa = df[:, 1:nbrSampleAnnots]
 	va = DataFrame(VariableId=propertynames(df)[nbrSampleAnnots+1:end])
-	originalData = convert(Matrix, df[!,nbrSampleAnnots+1:end])'
+	originalData = Matrix(df[!,nbrSampleAnnots+1:end])'
 	@assert eltype(originalData) <: Union{Number,Missing}
 
 	if logTransform
