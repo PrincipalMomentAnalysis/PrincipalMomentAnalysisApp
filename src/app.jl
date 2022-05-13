@@ -32,7 +32,7 @@ guesslastsampleannot(df::DataFrame) =
 getdelim(filepath::String) = lowercase(splitext(filepath)[2])==".csv" ? ',' : '\t'
 
 loadcsv(filepath::String; delim, transpose::Bool=false) =
-	DataFrame(CSV.File(filepath; delim=delim, transpose=transpose, use_mmap=false, threaded=false)) # threaded=false and perhaps use_mmap=false are needed to avoid crashes
+	CSV.read(filepath, DataFrame; delim=delim, transpose=transpose, ntasks=1) # ntasks=1 might prevent crashes on some systems???
 
 function loadsample(st, input::Dict{String,Any})::DataFrame
 	@assert length(input)==2
