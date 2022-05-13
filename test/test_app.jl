@@ -44,7 +44,7 @@ end
 	@test dfSample.Time == timeAnnot
 	@test size(dfSample)==(20,3+40)
 
-	X = Matrix(convert(Matrix{Float64}, dfSample[:,4:end])')
+	X = Matrix(Matrix{Float64}(dfSample[:,4:end])')
 	normalizemean!(X)
 
 	# PMA (groups)
@@ -104,7 +104,7 @@ end
 			setvalue(app, Any["exportsinglepath", filepath])
 			put!(app.fromGUI, :exportsingle=>[])
 			@test runall(app)
-			result = DataFrame(CSV.File(filepath, delim='\t', use_mmap=false, threaded=false))
+			result = CSV.read(filepath, DataFrame; delim='\t', ntasks=1)
 			colName = Symbol(:PMA,dim)
 			resultPMA = result[:,colName]
 
@@ -140,18 +140,18 @@ end
 			setvalue(app, Any["exportmultiplepath", filepath])
 			put!(app.fromGUI, :exportmultiple=>[])
 			@test runall(app)
-			result = DataFrame(CSV.File(filepath, delim=',', use_mmap=false, threaded=false))
+			result = CSV.read(filepath, DataFrame; delim=',', ntasks=false)
 
 			colNames = Symbol.(:PMA,1:dim)
 
 			if mode=="Samples"
 				@test propertynames(result)==vcat(:SampleId, colNames)
 				@test result.SampleId == sampleIds
-				@test convert(Matrix,result[:,colNames]) ≈ reduced.F.V[:,1:dim]
+				@test Matrix(result[:,colNames]) ≈ reduced.F.V[:,1:dim]
 			else
 				@test propertynames(result)==vcat(:VariableId, colNames)
 				@test result.VariableId == string.(varIds)
-				@test convert(Matrix,result[:,colNames]) ≈ reduced.F.U[:,1:dim]
+				@test Matrix(result[:,colNames]) ≈ reduced.F.U[:,1:dim]
 			end
 		end
 	end
